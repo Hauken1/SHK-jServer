@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 
@@ -11,14 +12,16 @@ public class UserClient {
 		
 		private BufferedReader input;
 		private BufferedWriter output;
+		private ObjectInputStream objectInput;
 		
-		private String name;
-
+        private Message m;
+		
 		public UserClient(Socket connection) throws IOException {
 			this.connection = connection;
 			
 			input = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 			output = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));	
+			objectInput = new ObjectInputStream(connection.getInputStream());
 		}
 		
 		/**
@@ -43,19 +46,60 @@ public class UserClient {
 			output.flush();
 		}
 		
-		public String read() throws IOException {
-			if (input.ready())
-				return input.readLine();
-			return null;
+		public void read() throws IOException, ClassNotFoundException {
+			//if (input.ready())
+				//return input.readLine();
+			if (objectInput.readObject() != null){
+			m = (Message) objectInput.readObject();
+			}
 		}
 		
-		/**
-		 * Returns the name of the Player
-		 * @return player name
-		 */
-		public String returnName() {
-			return name;
+		//public String returnName() {
+			
+		//}
+		public Message returnMessageInformation() {
+			return m;
 		}
+		/*
+		public void getMessage(int i) {
+			switch(i) {
+			case 0:
+				return;
+				break;
+			case 1:
+				return ad
+			case 2:
+				return
+			case 3:
+				return m.deviceNr;
+			}
+			
+		}
+		*/
+		  
+		  public class Message implements java.io.Serializable
+	        {
+	            public String name;
+	            public String address;
+	            public int subnetNr;
+	            public int deviceNr;
+	            
+	            
+	            public String name() {
+	  			  return name;
+	  		  	}
+	            public String address() {
+		  			  return address;
+	            }
+	            public int subnetNr() {
+		  			  return subnetNr;
+		  		}
+	            public int deviceNr() {
+		  			  return deviceNr;
+		  		}  
+	            
+	        }
+		  
 		
 }
 

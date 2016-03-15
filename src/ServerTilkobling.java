@@ -29,6 +29,8 @@ public class ServerTilkobling extends JFrame {
 	
 	private ArrayBlockingQueue<String> messages = new ArrayBlockingQueue<String>(50);
 	
+	private UserClient.Message m;
+	
 	public ServerTilkobling() {
 		
 		outputArea = new JTextArea();
@@ -92,18 +94,15 @@ public class ServerTilkobling extends JFrame {
 						while (i.hasNext()) {
 							UserClient u = i.next();
 							try {
-								String msg = u.read();
+								u.read();
 								
-								handleMessages(u, msg);
-									
-								if (msg != null && msg.equals(">>>LOGOUT<<<")) {
-									i.remove();
-									messages.put("LOGOUT");
-								}
-							} catch (IOException ioe) {
-								i.remove();
-								messages.put("User connection lost");
+							} catch (Exception e) {
+								System.out.println("Feil med object");
+								e.printStackTrace();
 							}
+							//for(int i = 0; i < 4; i++) {
+							m = u.returnMessageInformation();
+							handleMessages(m);
 						}
 					}
 				} catch (InterruptedException ie) {
@@ -118,9 +117,12 @@ public class ServerTilkobling extends JFrame {
 			}
 		});
 	}
-	private void handleMessages(UserClient u, String msg) throws InterruptedException {
-		if (msg != null) {
-			displayMessage("New message: " + msg + "\n");
+	private void handleMessages(UserClient.Message m) throws InterruptedException {
+		if (m != null) {
+			displayMessage("New message: " + m.name + "\n");
+			displayMessage("New message: " + m.address + "\n");
+			displayMessage("New message: " + m.subnetNr + "\n");
+			displayMessage("New message: " + m.deviceNr + "\n");
 		}
 	}
 	
