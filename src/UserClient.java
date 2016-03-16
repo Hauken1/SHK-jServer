@@ -4,24 +4,28 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.OutputStreamWriter;
+import java.net.DatagramSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+
+import javafx.scene.chart.PieChart.Data;
 
 public class UserClient {
 		
-		private Socket connection;
+		private DatagramSocket connection;
 		
 		private BufferedReader input;
 		private BufferedWriter output;
 		private ObjectInputStream objectInput;
+		private ArrayList<ClientMessage> message = new ArrayList<ClientMessage>();
 		
-        private Message m;
 		
-		public UserClient(Socket connection) throws IOException {
+		public UserClient(DatagramSocket connection) throws IOException {
 			this.connection = connection;
 			
-			input = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-			output = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));	
-			objectInput = new ObjectInputStream(connection.getInputStream());
+			//input = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+			//output = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));	
+			//objectInput = new ObjectInputStream(connection.getInputStream());
 		}
 		
 		/**
@@ -46,60 +50,31 @@ public class UserClient {
 			output.flush();
 		}
 		
-		public void read() throws IOException, ClassNotFoundException {
+		public void read() {
 			//if (input.ready())
 				//return input.readLine();
-			if (objectInput.readObject() != null){
-			m = (Message) objectInput.readObject();
+			
+			try {
+				if (objectInput.readObject() != null){
+					ClientMessage m = new ClientMessage(); 
+					m = (ClientMessage) objectInput.readObject();
+					message.add(m);
+				}
+			} catch (ClassNotFoundException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 		
-		//public String returnName() {
-			
-		//}
-		public Message returnMessageInformation() {
-			return m;
-		}
-		/*
-		public void getMessage(int i) {
-			switch(i) {
-			case 0:
-				return;
-				break;
-			case 1:
-				return ad
-			case 2:
-				return
-			case 3:
-				return m.deviceNr;
+		public Object getMessage () {
+			int n;
+			if (!message.isEmpty()) {
+				n = message.size();
+				return message.get(n-1);	
 			}
+			else 
+				return -1; 
 			
 		}
-		*/
-		  
-		  public class Message implements java.io.Serializable
-	        {
-	            public String name;
-	            public String address;
-	            public int subnetNr;
-	            public int deviceNr;
-	            
-	            
-	            public String name() {
-	  			  return name;
-	  		  	}
-	            public String address() {
-		  			  return address;
-	            }
-	            public int subnetNr() {
-		  			  return subnetNr;
-		  		}
-	            public int deviceNr() {
-		  			  return deviceNr;
-		  		}  
-	            
-	        }
-		  
-		
 }
 
