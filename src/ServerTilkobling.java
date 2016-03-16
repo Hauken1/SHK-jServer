@@ -1,6 +1,8 @@
 import java.awt.BorderLayout;
 import java.awt.Font;
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -18,19 +20,19 @@ import javax.swing.SwingUtilities;
 
 public class ServerTilkobling extends JFrame {
 
-	private ServerSocket server;
-	private ExecutorService executorService;
+	//private ServerSocket server;
+	private DatagramSocket socket;
+	ExecutorService executorService;
 	
 	private JTextArea outputArea;
 	
 	private boolean shutdown = false;
 	
 	private ArrayList<UserClient> user = new ArrayList<UserClient>();
+	private ArrayList<ClientMessage> m = new ArrayList<ClientMessage>();
 	
 	private ArrayBlockingQueue<String> messages = new ArrayBlockingQueue<String>(50);
-	
-	private UserClient.Message m;
-	
+		
 	public ServerTilkobling() {
 		
 		outputArea = new JTextArea();
@@ -40,11 +42,13 @@ public class ServerTilkobling extends JFrame {
 		outputArea.setText("Server awaiting connections\n");
 		
 		try {
-			server = new ServerSocket(1234); // Set up serverSocket
+			//server = new ServerSocket(1234); // Set up serverSocket
+			socket = new DatagramSocket(1234);
 			executorService = Executors.newCachedThreadPool();
 			
 			startLoginMonitor();
-			startMessageListener();
+			//startMessageListener();
+		
 			
 			executorService.shutdown();
 			
@@ -62,15 +66,25 @@ public class ServerTilkobling extends JFrame {
 			while (!shutdown) {
 				Random rnd = new Random();
 				try {
-					Socket s = server.accept();
-					UserClient u = new UserClient(s);
-					
-					displayMessage("User CONNECTED!" + "\n");
-						
-					synchronized (user) {
-						user.add(u);
-						Iterator<UserClient> i = user.iterator();
-						}
+					byte[] data = new byte[100];
+		            DatagramPacket receivePacket = new DatagramPacket(data,
+		                    data.length);
+
+		            socket.receive(receivePacket);
+
+		            displayMessage("User CONNECTED!" + "\n");
+		            displayMessage("\nPacket received:"
+		                    + "\nFrom host: "
+		                    + receivePacket.getAddress()
+		                    + "\nHost port: "
+		                    + receivePacket.getPort()
+		                    + "\nLength: "
+		                    + receivePacket.getLength()
+		                    + "\nContaining: "
+		                    + new String(receivePacket.getData(), 0,
+		                            receivePacket.getLength()));
+		            
+		            sendPacketToClient(receivePacket);
 				} catch (IOException ioe) {
 					displayMessage("CONNECTION ERROR: " + ioe + "\n");
 				}
@@ -94,30 +108,29 @@ public class ServerTilkobling extends JFrame {
 						while (i.hasNext()) {
 							UserClient u = i.next();
 							try {
-								u.read();
+							
 								
 							} catch (Exception e) {
 								System.out.println("Feil med object");
 								e.printStackTrace();
 							}
-							//for(int i = 0; i < 4; i++) {
-							m = u.returnMessageInformation();
-							handleMessages(m);
 						}
 					}
-				} catch (InterruptedException ie) {
-					ie.printStackTrace();
-				}
 				 try {
 						TimeUnit.MILLISECONDS.sleep(rnd.nextInt(100) * 10);
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
+				 
+				} catch (Exception ie) {
+					ie.printStackTrace();
+				}
 			}
 		});
 	}
-	private void handleMessages(UserClient.Message m) throws InterruptedException {
+	
+	private void handleMessages(ClientMessage m) throws InterruptedException {
 		if (m != null) {
 			displayMessage("New message: " + m.name + "\n");
 			displayMessage("New message: " + m.address + "\n");
@@ -129,4 +142,17 @@ public class ServerTilkobling extends JFrame {
 	private void displayMessage(String text) {
 		SwingUtilities.invokeLater(() -> outputArea.append(text));
 	}
+	
+	private void sendPacketToClient(DatagramPacket receivePacket)
+	            throws IOException {
+	        displayMessage("\n\nEcho data to client....");
+
+	        DatagramPacket sendPacket = new DatagramPacket(receivePacket.getData(),
+	                receivePacket.getLength(), receivePacket.getAddress(),
+	                receivePacket.getPort());
+
+	        socket.send(sendPacket);
+	        displayMessage("Packet sent\n");
+    }
+	
 }
