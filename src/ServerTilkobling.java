@@ -23,7 +23,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
-import com.sun.xml.internal.ws.encoding.MtomCodec.ByteArrayBuffer;
+//import com.sun.xml.internal.ws.encoding.MtomCodec.ByteArrayBuffer;
 
 public class ServerTilkobling extends JFrame {
 
@@ -231,6 +231,24 @@ public class ServerTilkobling extends JFrame {
 		HDLData[11] = (byte) mirInt[7];
 		HDLData[12] = (byte) mirInt[8];
 		HDLData[13] = (byte) mirInt[9];
+		HDLData[14] = (byte) 170;
+		HDLData[15] = (byte) 170;
+		HDLData[16] = (byte) 15;		
+		HDLData[17] = (byte) 12;	
+		HDLData[18] = (byte) 254;
+		HDLData[19] = (byte) 255;
+		HDLData[20] = (byte) 254;	
+		HDLData[21] = (byte) 0;
+		HDLData[22] = (byte) 49;
+		HDLData[23] = (byte) 1;
+		HDLData[24] = (byte) 17;		
+		HDLData[25] = (byte) 1;	
+		HDLData[26] = (byte) 100;
+		HDLData[27] = (byte) 0;
+		HDLData[28] = (byte) 1;		
+		HDLData[29] = (byte) 208;
+		HDLData[30] = (byte) 164;
+
 		/*
 		int n = (int) Integer.parseInt(s);
 		for (int j = 0; 0 <= s.length(); j++  ){
