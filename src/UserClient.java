@@ -12,7 +12,7 @@ import javafx.scene.chart.PieChart.Data;
 
 public class UserClient {
 		
-		private DatagramSocket connection;
+		private Socket connection;
 		
 		private BufferedReader input;
 		private BufferedWriter output;
@@ -20,12 +20,13 @@ public class UserClient {
 		private ArrayList<ClientMessage> message = new ArrayList<ClientMessage>();
 		
 		
-		public UserClient(DatagramSocket connection) throws IOException {
+		public UserClient(Socket connection) throws IOException {
 			this.connection = connection;
 			
-			//input = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-			//output = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));	
-			//objectInput = new ObjectInputStream(connection.getInputStream());
+
+			input = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+			output = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));
+			
 		}
 		
 		/**
@@ -50,31 +51,10 @@ public class UserClient {
 			output.flush();
 		}
 		
-		public void read() {
-			//if (input.ready())
-				//return input.readLine();
-			
-			try {
-				if (objectInput.readObject() != null){
-					ClientMessage m = new ClientMessage(); 
-					m = (ClientMessage) objectInput.readObject();
-					message.add(m);
-				}
-			} catch (ClassNotFoundException | IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
-		public Object getMessage () {
-			int n;
-			if (!message.isEmpty()) {
-				n = message.size();
-				return message.get(n-1);	
-			}
-			else 
-				return -1; 
-			
+		public String read() throws IOException {
+			if (input.ready())
+				return input.readLine();
+			return null;
 		}
 }
 
