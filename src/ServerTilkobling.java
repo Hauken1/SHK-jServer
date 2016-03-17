@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -30,6 +31,7 @@ public class ServerTilkobling extends JFrame {
 
 	//private ServerSocket server;
 	private DatagramSocket socket;
+	private static ServerSocket serverSocket; 
 	ExecutorService executorService;
 	
 	private JTextArea outputArea;
@@ -41,8 +43,10 @@ public class ServerTilkobling extends JFrame {
 	
 	private ArrayBlockingQueue<String> messages = new ArrayBlockingQueue<String>(50);
 		
-	private String IP = "192.168.10.141";
 	private String HDLip = "192.168.10.255";
+	private int serverPort = 12345;
+	private int datagramPort = 1234;
+	private int hdlPort = 6000;
 	
 	public ServerTilkobling() {
 		
@@ -53,16 +57,19 @@ public class ServerTilkobling extends JFrame {
 		outputArea.setText("Server awaiting connections\n");
 		
 		try {
-			//server = new ServerSocket(1234); // Set up serverSocket
-			socket = new DatagramSocket(1234);
+			socket = new DatagramSocket(datagramPort);
+			serverSocket = new ServerSocket(serverPort);
+			serverSocket.setReuseAddress(true);
+			//serverSocket.bind(new InetSocketAddress(serverPort));
+			
 			executorService = Executors.newCachedThreadPool();
 			
-			sendPacketToHDL();
+			//sendPacketToHDL();
 			startLoginMonitor();
-			//startMessageListener();
+			startMessageListener();
 		
 			
-			executorService.shutdown();
+			//executorService.shutdown();
 			
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
@@ -78,6 +85,12 @@ public class ServerTilkobling extends JFrame {
 			while (!shutdown) {
 				Random rnd = new Random();
 				try {
+					
+					Socket s = serverSocket.accept(); 
+					UserClient client = new UserClient(s);
+					user.add(client);
+					
+					/*
 					byte[] data = new byte[100];
 		            DatagramPacket receivePacket = new DatagramPacket(data,
 		                    data.length);
@@ -97,6 +110,8 @@ public class ServerTilkobling extends JFrame {
 		                            receivePacket.getLength()));
 		            
 		            sendPacketToClient(receivePacket);
+		            */
+					
 				} catch (IOException ioe) {
 					displayMessage("CONNECTION ERROR: " + ioe + "\n");
 				}
@@ -120,10 +135,14 @@ public class ServerTilkobling extends JFrame {
 						while (i.hasNext()) {
 							UserClient u = i.next();
 							try {
-							
-								
+								String msg = u.read();
+								if (msg != null) {
+									System.out.println(msg);
+									sendPacketToHDL();
+								}
+
 							} catch (Exception e) {
-								System.out.println("Feil med object");
+								System.out.println("Feil med melding");
 								e.printStackTrace();
 							}
 						}
@@ -142,6 +161,13 @@ public class ServerTilkobling extends JFrame {
 		});
 	}
 	
+	
+	private void displayMessage(String text) {
+		SwingUtilities.invokeLater(() -> outputArea.append(text));
+	}
+	
+	/*
+	 * 
 	private void handleMessages(ClientMessage m) throws InterruptedException {
 		if (m != null) {
 			displayMessage("New message: " + m.name + "\n");
@@ -149,10 +175,6 @@ public class ServerTilkobling extends JFrame {
 			displayMessage("New message: " + m.subnetNr + "\n");
 			displayMessage("New message: " + m.deviceNr + "\n");
 		}
-	}
-	
-	private void displayMessage(String text) {
-		SwingUtilities.invokeLater(() -> outputArea.append(text));
 	}
 	
 	private void sendPacketToClient(DatagramPacket receivePacket)
@@ -166,12 +188,12 @@ public class ServerTilkobling extends JFrame {
 	        socket.send(sendPacket);
 	        displayMessage("Packet sent\n");
     }
+	*/
 	
 	private void sendPacketToHDL () {
 		displayMessage("\n\nEcho data to HDL....");
 		
 		byte[] HDLData = new byte[31];
-		//ByteBuffer buf = ByteBuffer.allocate(100);
 		  
 		String ip1 = "192";
 		String ip2 = "168";
@@ -190,7 +212,7 @@ public class ServerTilkobling extends JFrame {
 				mirInt[k] = mir.charAt(k);
 			} catch(NumberFormatException numberE){};
 		}
-		/*
+	
 		HDLData[0] = (byte) ipInt1;
 		HDLData[1] = (byte) ipInt2;
 		HDLData[2] = (byte) ipInt3;
@@ -218,54 +240,21 @@ public class ServerTilkobling extends JFrame {
 		HDLData[23] = (byte) 1;
 		HDLData[24] = (byte) 17;		
 		HDLData[25] = (byte) 1;	
-		HDLData[26] = (byte) 100;
+		//Lys på
+		//HDLData[26] = (byte) 100;
+		//Lys av
+		HDLData[26] = (byte) 0;
+		
 		HDLData[27] = (byte) 0;
-		HDLData[28] = (byte) 1;		
+		HDLData[28] = (byte) 1;
+		
+		//Lys på
+		//HDLData[29] = (byte) 151;
+		//HDLData[30] = (byte) 15;
+		
+		//Lys av
 		HDLData[29] = (byte) 208;
 		HDLData[30] = (byte) 164;
-		/*
-		 * 
-		 */
-		HDLData[0] = (byte) ipInt1;
-		HDLData[1] = (byte) ipInt2;
-		HDLData[2] = (byte) ipInt3;
-		HDLData[3] = (byte) ipInt4;
-		
-		HDLData[4] = (byte) mirInt[0];
-		HDLData[5] = (byte) mirInt[1];
-		HDLData[6] = (byte) mirInt[2];
-		HDLData[7] = (byte) mirInt[3];
-		HDLData[8] = (byte) mirInt[4];
-		HDLData[9] = (byte) mirInt[5];
-		HDLData[10] = (byte) mirInt[6];
-		HDLData[11] = (byte) mirInt[7];
-		HDLData[12] = (byte) mirInt[8];
-		HDLData[13] = (byte) mirInt[9];
-		HDLData[14] = (byte) 170;
-		HDLData[15] = (byte) 170;
-		HDLData[16] = (byte) 15;		
-		HDLData[17] = (byte) 12;	
-		HDLData[18] = (byte) 254;
-		HDLData[19] = (byte) 255;
-		HDLData[20] = (byte) 254;	
-		HDLData[21] = (byte) 0;
-		HDLData[22] = (byte) 49;
-		HDLData[23] = (byte) 1;
-		HDLData[24] = (byte) 17;		
-		HDLData[25] = (byte) 1;	
-		//Lys på
-		HDLData[26] = (byte) 100;
-		//Lys av
-		//HDLData[26] = (byte) 0;
-		
-		HDLData[27] = (byte) 0;
-		HDLData[28] = (byte) 1;		
-		//Lys på
-		HDLData[29] = (byte) 151;
-		HDLData[30] = (byte) 15;
-		//Lys av
-		//HDLData[29] = (byte) 208;
-		//HDLData[30] = (byte) 164;
 		
 		/*
 		for (byte b : HDLData) {
@@ -276,7 +265,7 @@ public class ServerTilkobling extends JFrame {
 		try {
 			DatagramPacket sendPacket;
 			sendPacket = new DatagramPacket(HDLData,
-			        HDLData.length, InetAddress.getByName(HDLip), 6000);
+			        HDLData.length, InetAddress.getByName(HDLip), hdlPort);
 			socket.send(sendPacket);
 		} catch (UnknownHostException e1) {
 			// TODO Auto-generated catch block
