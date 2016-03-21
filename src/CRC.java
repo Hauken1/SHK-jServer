@@ -118,6 +118,5 @@ public class CRC {
 	// True if...no fucking clue whats going on here
 	// False if... whatever, I don't care.
 		return isRight = (ptrCount==(crc>>8)&&(ptrCount+1==dat)) ? true:false;
-	}
-}
+	}}
 
