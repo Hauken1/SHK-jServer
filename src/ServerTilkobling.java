@@ -265,7 +265,7 @@ public class ServerTilkobling extends JFrame {
 		displayMessage("\n\nEcho data to HDL....");
 		
 		byte[] HDLData = new byte[31];
-		  
+/*		  
 		String ip1 = "192";
 		String ip2 = "168";
 		String ip3 = "10";
@@ -323,7 +323,7 @@ public class ServerTilkobling extends JFrame {
 		HDLData[28] = (byte) 1;
 		
 		//Lys på
-		HDLData[29] = (byte) 151;
+		/*HDLData[29] = (byte) 151;
 		HDLData[30] = (byte) 15;
 		
 		//Lys av
@@ -337,7 +337,11 @@ public class ServerTilkobling extends JFrame {
 		}
 		*/
 		
-		System.out.println(CRCPack(HDLData, HDLData.length));
+		
+		hdlPacket packet = new hdlPacket();
+				
+		
+		System.out.println(packet);
 				
 		try {
 			DatagramPacket sendPacket;
@@ -354,7 +358,7 @@ public class ServerTilkobling extends JFrame {
 	}
 	
 /********************************* CRC table *********************************/
-	
+/*	
 	int[] CRCTable = {
 		 0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
 		 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
@@ -400,31 +404,27 @@ public class ServerTilkobling extends JFrame {
 	// Input parameter 2, len, deduct 2 byte from this data package
 	// because CRC takes 2 byte.
 	// e.g if package length is 11, then len is 13-2 = 11.
-	
-	private byte CRCPack(byte[]buffer,int len) {
-		byte [] temp = new byte[len];
-		
-		for(int i = 16; i<=buffer.length; i++) {
-			temp[i-16] = buffer[i];
-		}
+/*
+	private byte CRCPack(byte[] buffer,int len) {
 		
 		int crc = 0;
-		byte dat;
-		int i = 0;
-		byte ptrCount = temp[0];
+		int i = 16;
+		byte dat = 0;
+		byte ptrCount = buffer[16];
 		
 		while (len-- != 0) {
 			dat=(byte) (crc>>8);
 			crc<<=8;
 			crc^=CRCTable[dat^ptrCount];
-			ptrCount=temp[i++];	
+			ptrCount=buffer[i++];			
 		}
 		
 		ptrCount = (byte) (crc>>8);
-		ptrCount++;
+		ptrCount = buffer[i++];
 		ptrCount = (byte) crc;
 		
 		return ptrCount;	
+		
 	}
 	
 	// Input parameter 1, buffer, to CRCCeck is from length of data package
@@ -438,14 +438,6 @@ public class ServerTilkobling extends JFrame {
 	
 	 boolean  CRCCheck(byte[] buffer, byte len) {		// CRC Checksum
 
-/* Might not need this stuff
-		byte[] temp = new byte[len-2];					// Takes values from 
-		for (int i = 3; i<=buffer.length; i++) {		// package length and 
-			for (int j = 0; j<=temp.length; j++) {		// forth. Insert into
-				temp[j]=buffer[i]; 						// new array
-			}
-		}
-*/
 		int crc = 0;
 		byte dat;
 		byte ptrCount = 0;
@@ -469,4 +461,5 @@ public class ServerTilkobling extends JFrame {
 	// False if... whatever, I don't care.
 		return isRight = (ptrCount==(crc>>8)&&(ptrCount+1==dat)) ? true:false;
 	}	
+*/
 }
