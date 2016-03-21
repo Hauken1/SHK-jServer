@@ -71,7 +71,7 @@ public class ServerTilkobling extends JFrame {
 			
 			executorService = Executors.newCachedThreadPool();
 			
-			sendPacketToHDL();
+			//sendPacketToHDL();
 			startLoginMonitor();
 			startAPPMessageListener();
 			startHDLMessageListener();
@@ -151,13 +151,13 @@ public class ServerTilkobling extends JFrame {
 										i.remove();
 										//shandleLogout(p);
 									}
-									else if (msg.startsWith("Heatcontroller:")) // Heating-related
+									else if (msg.startsWith("Heat.")) // Heating-related
 										handleHeatingControllerMessages(msg.substring("Heatcontroller".length()), u);
-									else if (msg.startsWith("Ventcontroller:")) // Ventilation-related
+									else if (msg.startsWith("Vent:")) // Ventilation-related
 										handleVentilationControllerMessages(msg.substring("Ventcontroller".length()), u);
-									else if (msg.startsWith("Lightcontroller:")) // Lighting-related
+									else if (msg.startsWith("Light:")) // Lighting-related
 										handleLightingControllerMessages(msg.substring("Lightcontroller".length()), u);
-									else if (msg.startsWith("Monitorcontroller:")) // Monitoring-related
+									else if (msg.startsWith("Monitor:")) // Monitoring-related
 										handleMonitoringControllerMessages(msg.substring("Monitorcontroller".length()), u);
 									
 									else {
@@ -225,12 +225,43 @@ public class ServerTilkobling extends JFrame {
 		SwingUtilities.invokeLater(() -> outputArea.append(text));
 	}
 	private void handleHeatingControllerMessages(String msg, UserClient u) {
-		
+		/*
+		 * Får inn en int, denne inten viser til et gitt object i en heatcontroller klassen, som oppgir nødvendig data:
+		 * Command, area funksjonalitet, temp, osv. 
+		 */
 	}
 	private void handleVentilationControllerMessages(String msg, UserClient u) {
 		
 	}
 	private void handleLightingControllerMessages(String msg, UserClient u) {
+		int cmd;
+		int subnetNr;
+		int dNr;
+		if (msg.charAt(7) == 0) {
+			if (msg.charAt(8)== 0) {
+				cmd = msg.charAt(9);
+			} 
+			else cmd = Integer.parseInt(msg.substring(8,9));
+		}
+		else cmd = Integer.parseInt(msg.substring(7,9));
+		
+		subnetNr = Integer.parseInt(msg.substring(10));
+		
+		if(msg.charAt(11)== 0 ) {
+			dNr = msg.charAt(12);
+		}
+		else dNr = Integer.parseInt(msg.substring(11,12));
+		
+		//Puts additional data from msg into a byte array. 
+		String[] byteString = msg.substring(13, msg.length() - 1).split(",");
+		byte[] data = new byte[byteString.length];
+
+		for (int i=0, len=data.length; i<len; i++) {
+		   data[i] = Byte.parseByte(byteString[i].trim());     
+		}
+		
+		sendPacketToHDL(cmd, subnetNr, dNr, data);
+		
 		
 	}
 	private void handleMonitoringControllerMessages(String msg, UserClient u) {
@@ -261,7 +292,7 @@ public class ServerTilkobling extends JFrame {
     }
 	*/
 	
-	private void sendPacketToHDL () {
+	private void sendPacketToHDL (int cmd, int subnetNr, int deviceNr, byte[] addData) {
 		displayMessage("\n\nEcho data to HDL....");
 		
 		byte[] HDLData = new byte[31];
@@ -285,12 +316,12 @@ public class ServerTilkobling extends JFrame {
 		}
 	
 		
-		HDLData[0] = (byte) ipInt1;
+		HDLData[0] = (byte) ipInt1;	//0-3 contains the IP of sender. Default 192.168.10.141
 		HDLData[1] = (byte) ipInt2;
 		HDLData[2] = (byte) ipInt3;
 		HDLData[3] = (byte) ipInt4;
 		
-		HDLData[4] = (byte) mirInt[0];
+		HDLData[4] = (byte) mirInt[0]; //4-13 contains the required string "HDLMIRACLE"
 		HDLData[5] = (byte) mirInt[1];
 		HDLData[6] = (byte) mirInt[2];
 		HDLData[7] = (byte) mirInt[3];
@@ -302,29 +333,29 @@ public class ServerTilkobling extends JFrame {
 		HDLData[13] = (byte) mirInt[9];
 		
 		
-		HDLData[14] = (byte) 170;
-		HDLData[15] = (byte) 170;
-		HDLData[16] = (byte) 15;		
-		HDLData[17] = (byte) 12;	
-		HDLData[18] = (byte) 254;
-		HDLData[19] = (byte) 255;
-		HDLData[20] = (byte) 254;	
-		HDLData[21] = (byte) 0;
-		HDLData[22] = (byte) 49;
-		HDLData[23] = (byte) 1;
-		HDLData[24] = (byte) 17;		
-		HDLData[25] = (byte) 1;	
+		HDLData[14] = (byte) 170;	//Leading code
+		HDLData[15] = (byte) 170;	//Leading code
+		HDLData[16] = (byte) 15;	//Data package length	
+		HDLData[17] = (byte) 12;	//Original subnet ID
+		HDLData[18] = (byte) 254;	//Original device ID 
+		HDLData[19] = (byte) 255;	//Original device type - higher than 8
+		HDLData[20] = (byte) 254;	//Original device type - lower than 8
+		HDLData[21] = (byte) 0;		//Operation code - higher than 8
+		HDLData[22] = (byte) 49;	//Operation code - lower than 8
+		HDLData[23] = (byte) 1;		//Target subnet
+		HDLData[24] = (byte) 17;	//Target devicenr	
+		HDLData[25] = (byte) 1;		//Channel nr
 		//Lys på
-		HDLData[26] = (byte) 100;
+		HDLData[26] = (byte) 100;	//Intensity
 		//Lys av
 		//HDLData[26] = (byte) 0;
 		
-		HDLData[27] = (byte) 0;
-		HDLData[28] = (byte) 1;
+		HDLData[27] = (byte) 0;		//Running time - higher than 8
+		HDLData[28] = (byte) 1;		//Running time - lower than 8
 		
 		//Lys på
-		/*HDLData[29] = (byte) 151;
-		HDLData[30] = (byte) 15;
+		//HDLData[29] = (byte) 151;	//CRC - highter than 8
+		//HDLData[30] = (byte) 15;	//CRC - lower than 8
 		
 		//Lys av
 		HDLData[29] = (byte) 0;
