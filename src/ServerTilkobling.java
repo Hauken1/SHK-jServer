@@ -29,8 +29,8 @@ import javax.swing.SwingUtilities;
 
 public class ServerTilkobling extends JFrame {
 
-	//private ServerSocket server;
 	private DatagramSocket socket;
+	private DatagramSocket hdlSocket;
 	private static ServerSocket serverSocket; 
 	ExecutorService executorService;
 	
@@ -60,14 +60,21 @@ public class ServerTilkobling extends JFrame {
 			socket = new DatagramSocket(datagramPort);
 			serverSocket = new ServerSocket(serverPort);
 			serverSocket.setReuseAddress(true);
+			
+			/*
+			 hdlSocket = new DatagramSocket(null);
+		     InetSocketAddress address = new InetSocketAddress("192.168.10.255", 6000);
+		     hdlSocket.bind(address);
+		    */
 			//serverSocket.bind(new InetSocketAddress(serverPort));
 			
 			executorService = Executors.newCachedThreadPool();
 			
 			//sendPacketToHDL();
 			startLoginMonitor();
-			startMessageListener();
-		
+			startAPPMessageListener();
+			startHDLMessageListener();
+			
 			
 			//executorService.shutdown();
 			
@@ -125,7 +132,7 @@ public class ServerTilkobling extends JFrame {
 		});
 	}
 	
-	private void startMessageListener() {
+	private void startAPPMessageListener() {
 		executorService.execute(() -> {
 			while (!shutdown) {
 				Random rnd = new Random();
@@ -161,6 +168,41 @@ public class ServerTilkobling extends JFrame {
 		});
 	}
 	
+	private void startHDLMessageListener() {
+		executorService.execute(() -> {
+			while (!shutdown) {
+				Random rnd = new Random();
+				try {
+					 byte[] data = new byte[570];
+					 DatagramPacket receivePacket = new DatagramPacket(data,
+							 data.length);
+		             socket.receive(receivePacket);
+
+		             displayMessage("\nPacket received from HDL:"
+			                    + "\nFrom host: "
+			                    + receivePacket.getAddress()
+			                    + "\nHost port: "
+			                    + receivePacket.getPort()
+			                    + "\nLength: "
+			                    + receivePacket.getLength()
+			                    + "\nContaining: "
+			                    + new String(receivePacket.getData(), 0,
+			                            receivePacket.getLength()));
+		             
+					} catch (Exception e) {
+							System.out.println("Feil med melding");
+							e.printStackTrace();
+					}
+					
+				 try {
+						TimeUnit.MILLISECONDS.sleep(rnd.nextInt(100) * 10);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}		 
+			}
+		});
+	}
 	
 	private void displayMessage(String text) {
 		SwingUtilities.invokeLater(() -> outputArea.append(text));
@@ -213,6 +255,7 @@ public class ServerTilkobling extends JFrame {
 			} catch(NumberFormatException numberE){};
 		}
 	
+		
 		HDLData[0] = (byte) ipInt1;
 		HDLData[1] = (byte) ipInt2;
 		HDLData[2] = (byte) ipInt3;
@@ -228,6 +271,8 @@ public class ServerTilkobling extends JFrame {
 		HDLData[11] = (byte) mirInt[7];
 		HDLData[12] = (byte) mirInt[8];
 		HDLData[13] = (byte) mirInt[9];
+		
+		
 		HDLData[14] = (byte) 170;
 		HDLData[15] = (byte) 170;
 		HDLData[16] = (byte) 15;		
@@ -241,20 +286,21 @@ public class ServerTilkobling extends JFrame {
 		HDLData[24] = (byte) 17;		
 		HDLData[25] = (byte) 1;	
 		//Lys på
-		//HDLData[26] = (byte) 100;
+		HDLData[26] = (byte) 100;
 		//Lys av
-		HDLData[26] = (byte) 0;
+		//HDLData[26] = (byte) 0;
 		
 		HDLData[27] = (byte) 0;
 		HDLData[28] = (byte) 1;
 		
 		//Lys på
-		//HDLData[29] = (byte) 151;
-		//HDLData[30] = (byte) 15;
+		HDLData[29] = (byte) 151;
+		HDLData[30] = (byte) 15;
 		
 		//Lys av
-		HDLData[29] = (byte) 208;
-		HDLData[30] = (byte) 164;
+		//HDLData[29] = (byte) 208;
+		//HDLData[30] = (byte) 164;
+		
 		
 		/*
 		for (byte b : HDLData) {
