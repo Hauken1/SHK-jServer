@@ -19,6 +19,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.sql.*;										// Brukerdatabase
 
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
@@ -70,7 +71,7 @@ public class ServerTilkobling extends JFrame {
 			
 			executorService = Executors.newCachedThreadPool();
 			
-			//sendPacketToHDL();
+			sendPacketToHDL();
 			startLoginMonitor();
 			startAPPMessageListener();
 			startHDLMessageListener();
@@ -298,15 +299,17 @@ public class ServerTilkobling extends JFrame {
 		HDLData[30] = (byte) 15;
 		
 		//Lys av
-		//HDLData[29] = (byte) 208;
-		//HDLData[30] = (byte) 164;
-		
+		HDLData[29] = (byte) 0;
+		HDLData[30] = (byte) 0;
+
 		
 		/*
 		for (byte b : HDLData) {
 		    System.out.println(b & 0xFF);
 		}
 		*/
+		
+		System.out.println(CRCPack(HDLData, HDLData.length));
 				
 		try {
 			DatagramPacket sendPacket;
@@ -370,23 +373,30 @@ public class ServerTilkobling extends JFrame {
 	// because CRC takes 2 byte.
 	// e.g if package length is 11, then len is 13-2 = 11.
 	
-	private void CRCPack(byte[]buffer,byte len) {
+	private byte CRCPack(byte[]buffer,int len) {
+		byte [] temp = new byte[len];
+		
+		for(int i = 16; i<=buffer.length; i++) {
+			temp[i-16] = buffer[i];
+		}
+		
 		int crc = 0;
 		byte dat;
 		int i = 0;
-		byte ptrCount = buffer[0];
+		byte ptrCount = temp[0];
 		
 		while (len-- != 0) {
 			dat=(byte) (crc>>8);
 			crc<<=8;
 			crc^=CRCTable[dat^ptrCount];
-			ptrCount=buffer[i++];	
+			ptrCount=temp[i++];	
 		}
 		
 		ptrCount = (byte) (crc>>8);
 		ptrCount++;
-		ptrCount=(byte) crc;
+		ptrCount = (byte) crc;
 		
+		return ptrCount;	
 	}
 	
 	// Input parameter 1, buffer, to CRCCeck is from length of data package
