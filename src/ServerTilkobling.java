@@ -146,7 +146,23 @@ public class ServerTilkobling extends JFrame {
 								String msg = u.read();
 								if (msg != null) {
 									System.out.println(msg);
-									sendPacketToHDL();
+									//sendPacketToHDL();
+									if (msg.equals("Disconnect")) {
+										i.remove();
+										//shandleLogout(p);
+									}
+									else if (msg.startsWith("Heatcontroller:")) // Heating-related
+										handleHeatingControllerMessages(msg.substring("Heatcontroller".length()), u);
+									else if (msg.startsWith("Ventcontroller:")) // Ventilation-related
+										handleVentilationControllerMessages(msg.substring("Ventcontroller".length()), u);
+									else if (msg.startsWith("Lightcontroller:")) // Lighting-related
+										handleLightingControllerMessages(msg.substring("Lightcontroller".length()), u);
+									else if (msg.startsWith("Monitorcontroller:")) // Monitoring-related
+										handleMonitoringControllerMessages(msg.substring("Monitorcontroller".length()), u);
+									
+									else {
+									}
+									//sendPacketToHDL();
 								}
 
 							} catch (Exception e) {
@@ -207,6 +223,18 @@ public class ServerTilkobling extends JFrame {
 	
 	private void displayMessage(String text) {
 		SwingUtilities.invokeLater(() -> outputArea.append(text));
+	}
+	private void handleHeatingControllerMessages(String msg, UserClient u) {
+		
+	}
+	private void handleVentilationControllerMessages(String msg, UserClient u) {
+		
+	}
+	private void handleLightingControllerMessages(String msg, UserClient u) {
+		
+	}
+	private void handleMonitoringControllerMessages(String msg, UserClient u) {
+		
 	}
 	
 	/*
