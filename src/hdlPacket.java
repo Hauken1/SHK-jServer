@@ -1,6 +1,6 @@
 import java.net.*;
 
-public class hdlPacket {	
+public class HdlPacket {	
 	int sourceAddress;
 	int sourceDevice = 0xfeff;
 	int command;
@@ -47,7 +47,7 @@ protected static final int[] CRCTable = {
 	};
 
 /******************************* CRC table end *******************************/
-	public hdlPacket() {
+	public HdlPacket() {
 		try {
 			replyAddress = InetAddress.getByAddress(new byte[] {0,0,0,0});
 		} catch(UnknownHostException e) {}
@@ -82,7 +82,7 @@ protected static final int[] CRCTable = {
 		return crc & 0xffff;
 	}
 	
-	protected static hdlPacket parse(byte[] data, int length) {
+	protected static HdlPacket parse(byte[] data, int length) {
 		// 4 bytes for IP address + 10 bytes for "HDLMIRACLE" + 13 bytes min
 		// packet length == 27. 
 		
@@ -100,7 +100,7 @@ protected static final int[] CRCTable = {
 		
 		int offset = 17;
 		
-		hdlPacket packet = new hdlPacket();
+		HdlPacket packet = new HdlPacket();
 		
 		packet.sourceAddress = ushort(data[offset], data[offset+1]);
 		offset+= 2;
