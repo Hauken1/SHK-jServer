@@ -71,6 +71,10 @@ public class ServerTilkobling extends JFrame {
 			
 			executorService = Executors.newCachedThreadPool();
 			
+			byte addr = 0b11111111;
+			
+			System.out.println(addr);
+			
 			//sendPacketToHDL();
 			startLoginMonitor();
 			startAPPMessageListener();
