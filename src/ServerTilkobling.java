@@ -21,10 +21,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.sql.*;										// Brukerdatabase
 
+import javax.activation.DataHandler;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
+
+import org.apache.derby.database.Database;
 
 //import com.sun.xml.internal.ws.encoding.MtomCodec.ByteArrayBuffer;
 
@@ -71,9 +74,15 @@ public class ServerTilkobling extends JFrame {
 			
 			executorService = Executors.newCachedThreadPool();
 			
-			byte addr = 0b11111111;
+		/*	byte addr = 0b11111111;
 			
 			System.out.println(addr);
+		*/
+			
+			DatabaseHandler.createNewUserDB();
+			DatabaseHandler.printDB();
+		
+
 			
 			//sendPacketToHDL();
 			startLoginMonitor();
