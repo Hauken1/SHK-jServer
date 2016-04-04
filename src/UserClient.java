@@ -23,7 +23,6 @@ public class UserClient {
 		private Socket connection;
 		private BufferedReader input;
 		private BufferedWriter output;
-		private ObjectInputStream objectInput;
 		private ArrayList<ClientMessage> message = new ArrayList<ClientMessage>();
 		String uName = "";
 		String pWord = "";
