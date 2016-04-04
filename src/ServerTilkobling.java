@@ -151,9 +151,10 @@ public class ServerTilkobling extends JFrame {
 				try {
 					Socket s = serverSocket.accept(); 
 					UserClient client = new UserClient(s);
-					
-					user.add(client);
-					System.out.println("User connected...");
+					if( client.loginChecker()) {
+						user.add(client);
+						System.out.println("User connected...");
+					}
 					
 				} catch (IOException ioe) {
 					displayMessage("CONNECTION ERROR: " + ioe + "\n");

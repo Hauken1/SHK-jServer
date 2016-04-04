@@ -26,7 +26,7 @@ public class UserClient {
 		private ArrayList<ClientMessage> message = new ArrayList<ClientMessage>();
 		String uName = "";
 		String pWord = "";
-		int id; 
+		int userId; 
 		
 		/**
 		 * Constructor for the UserClient class.
@@ -80,5 +80,28 @@ public class UserClient {
 			return null;
 		}
 
+		public boolean loginChecker() {
+			try {
+				String code = input.readLine();
+				String tempName = input.readLine();
+				String tempPass = input.readLine();
+
+				if (code.equals("Login")) {
+					int ID = DatabaseHandler.logIn(tempName, tempPass);
+
+					if (ID == 0) {
+						sendText(Integer.toString(ID));
+						return false;
+					}
+					userId = ID;
+					sendText(Integer.toString(userId));				// Sends the Player ID
+					return true;	
+				}
+			} catch (IOException ioe) { // catches any errors when trying to read from input
+				ioe.printStackTrace();
+			}
+			return false;
+		}
 }
+
 
