@@ -321,3 +321,21 @@ public class DatabaseHandler {
 }
 
 /*************************************END*************************************/
+/*
+if (args[0].equals("LOGIN")) {
+	// Then gets a username and a password.
+	uName = args[1];
+	pWord = DatabaseHandler.hasher(args[2]);
+	// Stores the userID
+	id = DatabaseHandler.logIn (uName, pWord);
+	
+	// If wrong username or password
+	if (id == 0) {
+		sendText("Feil brukernavn eller passord");			
+	}
+	
+	else {
+		
+	}
+	
+*/

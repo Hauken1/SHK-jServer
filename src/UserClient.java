@@ -38,32 +38,15 @@ public class UserClient {
 		 * @param connection The socket that holds the client connection.
 		 * @throws IOException	Exeption idicating an error.
 		 */
-//		public UserClient(Socket connection) throws IOException {
-		public UserClient(String args[]) {
-		//	this.connection = connection;
+		public UserClient(Socket connection) throws IOException {
+			this.connection = connection;
 			
 			try {
 				input = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 				output = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));
 			//	Logging.getLogger().info(Arrays.toString(args));
-				// Gets "LOGIN"
-				if (args[0].equals("LOGIN")) {
-					// Then gets a username and a password.
-					uName = args[1];
-					pWord = DatabaseHandler.hasher(args[2]);
-					// Stores the userID
-					id = DatabaseHandler.logIn (uName, pWord);
 					
-					// If wrong username or password
-					if (id == 0) {
-						sendText("Feil brukernavn eller passord");			
-					}
 					
-					else {
-						
-					}
-					
-				}	
 			} catch (IOException ioe) {
 				ioe.printStackTrace(); 
 		//		throw new Exception("Kunne ikke åpne stream fra klient");
