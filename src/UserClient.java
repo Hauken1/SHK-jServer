@@ -25,9 +25,9 @@ public class UserClient {
 		private BufferedWriter output;
 		private ObjectInputStream objectInput;
 		private ArrayList<ClientMessage> message = new ArrayList<ClientMessage>();
-		private String uName = "";
-		private int uid  = -1;
-		private static String tableName = "userDB";
+		String uName = "";
+		String pWord = "";
+		int id; 
 		
 		/**
 		 * Constructor for the UserClient class.
@@ -38,18 +38,31 @@ public class UserClient {
 		 * @param connection The socket that holds the client connection.
 		 * @throws IOException	Exeption idicating an error.
 		 */
-		public UserClient(Socket connection) throws IOException {
-			this.connection = connection;
+//		public UserClient(Socket connection) throws IOException {
+		public UserClient(String args[]) {
+		//	this.connection = connection;
 			
 			try {
 				input = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 				output = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));
-				String args[] = read().split("[\t]");
-				Logging.getLogger().info(Arrays.toString(args));
+			//	Logging.getLogger().info(Arrays.toString(args));
 				// Gets "LOGIN"
 				if (args[0].equals("LOGIN")) {
-				// Then gets a username and a password.
-			//		logIn (args, connection.getInetAddress().getHostAddress());
+					// Then gets a username and a password.
+					uName = args[1];
+					pWord = DatabaseHandler.hasher(args[2]);
+					// Stores the userID
+					id = DatabaseHandler.logIn (uName, pWord);
+					
+					// If wrong username or password
+					if (id == 0) {
+						sendText("Feil brukernavn eller passord");			
+					}
+					
+					else {
+						
+					}
+					
 				}	
 			} catch (IOException ioe) {
 				ioe.printStackTrace(); 
@@ -85,54 +98,6 @@ public class UserClient {
 				return input.readLine();
 			return null;
 		}
-		/**
-		 * Method uses to find a user in the userDB given username and password.
-		 * @param args
-		 * @param hostname
-		 */
-	/*	public void logIn(String[] args) {
-			try {
-				PreparedStatement pst = DatabaseHandler.getDBconnection().
-						prepareStatement("SELECT id FROM " + tableName + " WHERE uName = ? AND pWord = ?");
-				// Sets uName and pWord
-				pst.setString(1, args[1]);
-				pst.setString(2, args[2]);
-				
-				ResultSet result = pst.executeQuery();
-				if(!result.next()) {
-					sendText("Feil brukernavn/passord");
-					throw new Exception("Feil brukernavn/passord");
-				}
-				
-				uid = result.getInt(1);
-				uName = result.getString(2);
-				pst.close();
-				String password = 
-				pst = DatabaseHandler.getDBconnection().prepareStatement("UPDATE " + tableName + "SET loginkey = ?");
-				pst.setInt(1, key);
-				pst.execute();
-			
-				sendText("Login OK");
-				
-			} catch (SQLException sqle) {
-				sendText("Ooops! En databasefeil :( ");
-				throw new Exception("Ooops! En databasefeil :( ");
-				}
-		}
-		
-		public static String MD5(String md5) {
-			try {
-				java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
-				byte[] array = md.digest(md5.getBytes());
-				StringBuffer sb = new StringBuffer();
-				for (int i = 0; i < array.length; ++i) {
-					sb.append(Integer.toHexString((array[i] & 0xFF) | 0x100).substring(1,3));
-				}
-				return sb.toString();
-			} catch (java.security.NoSuchAlgorithmException e) {
-			}
-			return null;
-		}
-*/
+	
 }
 

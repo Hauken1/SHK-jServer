@@ -9,16 +9,16 @@ import java.sql.*;
 import com.sun.xml.internal.ws.api.addressing.WSEndpointReference.Metadata;
 
 /*****************************************************************************/
-
-/**
+/** Purpose:
+ * 
  * This class takes care of the creation of the user database, which contains 
  * user information of each resident. A total of four users will be found
  * in this DB.
  * 
- * Common errors; if you get Scheme 'somename" doest not exist try removing the
+ * Common errors; if you get Scheme 'somename" (ex. 'TEST') doesn't exist, try removing the
  * metadata functions in createUserDB.
  * 
- * Functions:
+ ** Functions:
  * 
  * createNewUserDB		// Creates new table
  * printDB				// Prints all the contents of the table
@@ -40,6 +40,7 @@ public class DatabaseHandler {
 	public static String DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
 	public static String dbURL = "jdbc:derby:userDB;create=true;";
 	public static String tableName="userDB";
+	public static String settingsTable="settingsTable";
 	
 	// JDBC connection and statements
 	private static Connection conn = null;
@@ -89,8 +90,9 @@ public class DatabaseHandler {
 			while(resultSet.next()) {
 				String user = resultSet.getString("uName");
 				String password = resultSet.getString("pWord");
+				int id = resultSet.getInt("id");
 				Boolean rMe = resultSet.getBoolean("rememberMe");
-				System.out.println("Bruker: " + user + " Passord: " +
+				System.out.println("Id: " + id + " Bruker: " + user + " Passord: " +
 				password + " Husk meg: " + rMe + "\n");	
 		}
 		conn.close();
@@ -131,7 +133,9 @@ public class DatabaseHandler {
 						"rememberMe BOOLEAN, " + 
 						"PRIMARY KEY(id))");
 			// Inserts users
+			// Root has id: 1
 				insertUsers("root", 	  hasher("root"),        false);
+			// Leilighet1 has id 2, and so on...
 				insertUsers("leilighet1", hasher("Karaffel"),    false);
 				insertUsers("leilighet2", hasher("kaffegrut"),   false);
 				insertUsers("hybel",      hasher("tommetønner"), false);	
@@ -139,6 +143,27 @@ public class DatabaseHandler {
 			conn.close();
 		} catch (SQLException sqle) {sqle.printStackTrace();} 
 	}
+/*	
+	/**
+	 * This function will, if the table doesn't exist, create the table filled with commands
+	 * to be sent to HDL IP module.
+	 /
+	public static void createCommandList() {
+		try {
+			connectToDB();
+			DatabaseMetaData dbmd = conn.getMetaData();							// Remove if scheme not exits
+			ResultSet rs = dbmd.getTables(null, "test", settingsTable, null);	// Remove if scheme not exits
+			if(rs.next()) {														// Remove if scheme not exits
+				stmt = conn.createStatement();
+				stmt.executeUpdate("CREATE TABLE " + settingsTable + " kommando INTEGER NOT NULL " +
+				"GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), " +
+				"kommando VARCHAR(255), " + 
+				"PRIMARY KEY(kommando))");
+			}																	// Remove if scheme not exits
+		} catch (SQLException sqle) {sqle.printStackTrace();}
+		
+	}
+*/
 	
 	/**
 	 * Hopefully, this will set the rememberMe flag to either 1 or 0. 
@@ -161,6 +186,22 @@ public class DatabaseHandler {
 		return false;
 	}
 	
+	/**
+	 * This function allows the creation of new users.
+	 * @param uName Username 
+	 * @param pWord Password
+	 *
+	public static void insertCommands(String command) {
+		try{
+			connectToDB();
+			stmt = conn.createStatement();
+			// Inserting new user into user database.
+			stmt.execute("INSERT INTO " + tableName + " (uName , pWord, rememberMe) VALUES ('" + uName + "','" + pWord +  "','" + rememberMe +"')");
+			// closing connection
+			conn.close();
+		} catch (SQLException sqle) {sqle.printStackTrace();}
+	}
+	*/
 	/**
 	 * This function allows the creation of new users.
 	 * @param uName Username 
@@ -209,12 +250,13 @@ public class DatabaseHandler {
 	 * @param uName
 	 * @param pWord
 	 */
-	public static boolean logIn(String uName, String pWord) {
+	public static int logIn(String uName, String pWord) {
 		String tempUName, tempPWord;
+		int tempId;
 		
 		try {
 			connectToDB();
-			String query = "SELECT uName, pWord FROM " + tableName;
+			String query = "SELECT id, uName, pWord FROM " + tableName;
 			Statement stmt = (Statement) conn.createStatement();
 			stmt.executeQuery(query);
 			ResultSet rs = stmt.getResultSet();
@@ -222,18 +264,20 @@ public class DatabaseHandler {
 			while(rs.next()) {
 				tempUName = rs.getString("uName");
 				tempPWord = rs.getString("pWord");
+				tempId    = rs.getInt("id");
+				
 				// Checks if inputs equals the ones in DB. Hashes the input PW 
 				// to see if it matches the one in the DB.
-				if(tempUName.equals(uName) && tempPWord.equals(hasher(pWord))) {
-				// If everything is OK.
-					return true;
+				if(tempUName.equals(uName) && tempPWord.equals(pWord)) {
+				// If everything is OK, it returns the id of the user		
+					return tempId;
 				}
 			}
 		} catch (SQLException sqle) {
 			sqle.printStackTrace();
 			}
 		// False uName/pWord
-		return false;
+		return 0;
 	}
 	
 	/**
