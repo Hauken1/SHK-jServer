@@ -4,6 +4,7 @@ public class HdlPacket {
 	int sourceAddress;
 	int sourceDevice = 0xfeff;
 	int command;
+	int subNet; 
 	int targetAddress;
 	InetAddress replyAddress;	
 	byte[] data;
@@ -87,21 +88,86 @@ protected static final int[] CRCTable = {
 		// packet length == 27. 
 		
 		if(length < 27 || !(new String(data, 4, 10). equals("HDLMIRACLE"))) {
+			System.out.println("TEST1");
 			return null;
 		}
 		
 		if(length != 4 + 10 + 2 + data[16]) {
+			System.out.println("TEST2");
 			return null;
 		}
 		
-		if(computeCRC16(data,16, data[16]-2) != ushort(data[length-2], data[length-1])) {
-			return null;
+		if(computeCRC16(data,16, data[16] - 2) != ushort(data[length - 2], data[length - 1])) {
+			//System.out.println("TEST3");
+			//return null;
 		}
 		
 		int offset = 17;
 		
 		HdlPacket packet = new HdlPacket();
+		packet.sourceAddress = data[17];
+		packet.sourceDevice = data[28];
+		packet.command = data[22];
+		packet.subNet = data[23];
+		packet.targetAddress = data[24];
 		
+		
+		/*
+		System.out.println("CMD:");
+		System.out.println(packet.command >> 8);	//Operationg code: higher than 8
+		System.out.println(packet.command);
+		System.out.println(data[14] + " 14"); //leading
+		System.out.println(data[15] + " 15"); //leading
+		System.out.println(data[16] + " 16"); //length
+		*/
+		//System.out.println(new String(data[14]) + " UTF-8"));
+		/*
+		System.out.println(data[18] + " 16");
+		System.out.println(data[19] + " 16");
+		System.out.println(data[16] + " 16");
+		System.out.println(data[16] + " 16");
+		System.out.println(data[16] + " 16");
+		System.out.println(data[16] + " 16");
+		System.out.println(data[16] + " 16");
+		System.out.println(data[16] + " 16");
+		*/
+		
+		//The command is in byte number 21 and 22
+		//the packet data starts at byte number 23
+		//The current temperatur is in byte number 26
+		//For heating, byte 29-32 contains the current temp
+		//that the floor heating is set too. This should be 
+		//sent to the applikation, based on the subnet of the
+		//panel which the command is sent to. 
+		
+		System.out.println(packet.command  + " Cmd");
+		
+		/*
+		int ii = 0; 
+		for (byte b : data ) {
+		    System.out.println((b & 0xFF) + " HDL " + ii++);
+		}
+		*/
+		
+		if((data.length > 27 )) {
+			//byte[] hdldat = new byte[length - 25/*data.length - 480*/ ];
+			packet.data = new byte[length - 25];
+			for (int i=0, len=length - 25/*data.length - 480*/; i<len; i++) {
+			   //hdldat[i] = data[23+i];
+			   packet.data[i] = data[23+i];
+			 
+			//   System.out.println((packet.data[i] & 0xFF) + " HDL " + i);
+			   //System.out.println(hdldat[i] + " data");
+			}
+			
+		} else {
+			packet.data = new byte[0];
+		}
+		
+		
+		
+		
+		/*
 		packet.sourceAddress = ushort(data[offset], data[offset+1]);
 		offset+= 2;
 		packet.sourceDevice = ushort(data[offset], data[offset+1]);
@@ -110,9 +176,11 @@ protected static final int[] CRCTable = {
 		offset+= 2;
 		packet.targetAddress = ushort(data[offset], data[offset+1]);
 		offset+= 2;
-		
+		*/
+		/*
 		packet.data = new byte[length-27];
 		System.arraycopy(data, 25, packet.data, 0, length-27); 	// parses arrays
+		*/
 		
 		return packet;
 	}

@@ -16,7 +16,6 @@ public class UserClient {
 		
 		private BufferedReader input;
 		private BufferedWriter output;
-		private ObjectInputStream objectInput;
 		private ArrayList<ClientMessage> message = new ArrayList<ClientMessage>();
 		
 		

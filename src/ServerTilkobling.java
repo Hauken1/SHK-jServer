@@ -46,24 +46,23 @@ public class ServerTilkobling extends JFrame {
 		
 	public static final int MAX_PACKET_SIZE = 512;
 	
-	private String HDLip = "192.168.10.255";
-	private String HDLReceivingIP = "0.0.0.0";
+
+	private InetAddress replyAddress; 
 	private int serverPort = 12345;
 	private int datagramPort = 1234;
-	private int hdlPort = 6000;
-	
 	
 	
 	InetAddress listenAddress;
 	
-	//******HDL*******
+	//******HDL******\\
 	int sourceAddress = 510;
 	int sourceDevice = 65279; //0xfeff;
+	private String HDLip = "192.168.10.255";
+	private String HDLReceivingIP = "0.0.0.0";
+	private int hdlPort = 6000;
 	
 	
 	public ServerTilkobling() {
-		
-		
 		
 		outputArea = new JTextArea();
 		outputArea.setFont(new Font("Ariel", Font.PLAIN, 14));
@@ -91,12 +90,42 @@ public class ServerTilkobling extends JFrame {
 			startAPPMessageListener();
 			startHDLMessageListener();
 				
+			/**/
+			/*
 			String msg1 = "Command:000002117,1,0";
 			CommandMessageController(msg1.substring(8,msg1.length()));
-			String msg2 = "Command:058336113,1,2";
-			CommandMessageController(msg2.substring(8,msg1.length()));
+			
+			/*
+			String msg2 = "Command:007262112,1";
+			CommandMessageController(msg2.substring(8,msg2.length()));
+			*/
+			//Varmestyring
+			//String msg2 = "Command:006470120,0,1,1,25,25,25,25";
+
+			//CommandMessageController(msg2.substring(8,msg2.length()));
+			//info 7262
+			//lese av temperatur på varmestyringskontroller
+			String msg3 = "Command:007262112,2";
+			//String msg2 = "Command:006468120";
+			//String msg2 = "Command:007262112,1";
+			//CommandMessageController(msg2.substring(8,msg2.length()));
+			CommandMessageController(msg3.substring(8,msg3.length()));
+			//Rele command 49 (singel channel ligthing) 
+			//String msg2 = "Command:000002117,1,0";
+			//CommandMessageController(msg2.substring(8,msg2.length()));
+			/*
+			String msg3 = "Command:000049114,2,100,0,1";
+			CommandMessageController(msg3.substring(8,msg3.length()));
+			*/
+			
+			/* Vindu
+			String msg2 = "Command:058336113,2,1";
+			CommandMessageController(msg2.substring(8,msg2.length()));
+			
+			/*
 			String msg3 = "Command:007262112";
 			CommandMessageController(msg2.substring(8,msg3.length()));
+			*/
 			//String msg2 = "Command:"
 			//executorService.shutdown();
 			
@@ -113,11 +142,10 @@ public class ServerTilkobling extends JFrame {
 			while (!shutdown) {
 				Random rnd = new Random();
 				try {
-					
 					Socket s = serverSocket.accept(); 
 					UserClient client = new UserClient(s);
 					user.add(client);
-					
+					System.out.println("User connected...");
 					
 				} catch (IOException ioe) {
 					displayMessage("CONNECTION ERROR: " + ioe + "\n");
@@ -149,10 +177,11 @@ public class ServerTilkobling extends JFrame {
 										i.remove();
 										//shandleLogout(p);
 									}
+									
 									else if (msg.startsWith("Command:"))
 										CommandMessageController(msg.substring(8,msg.length()));		
 									else if (msg.startsWith("Monitor:")) // Monitoring-related
-										handleMonitoringControllerMessages(msg.substring("Monitorcontroller".length()), u);
+										handleMonitoringControllerMessages(msg.substring(8,msg.length()), u);
 									
 									else {
 										
@@ -189,6 +218,7 @@ public class ServerTilkobling extends JFrame {
 							 data.length);
 		             socket.receive(receivePacket);
 		             
+		             /*
 		             displayMessage("\n\nPacket received from HDL:"
 			                    + "\nFrom host: "
 			                    + receivePacket.getAddress()
@@ -199,16 +229,43 @@ public class ServerTilkobling extends JFrame {
 			                    + "\nContaining: "
 			                    + new String(receivePacket.getData(), 0,
 			                            receivePacket.getLength()));
-		             
+		             */
 		            HdlPacket p = HdlPacket.parse(receivePacket.getData(), receivePacket.getLength());
 		            
 		            if(p != null) {
-		            	System.out.println("\n\nCMD*****" + p.command + "***********");
-		            	System.out.println("\n\nCMD*****" + p.data + "***********");
+		            	if(p.command == 71/*69*/) {	//Read temperature
+		            		
+		            		/*
+		            		int ii = 0; 
+		            		for (byte b : p.data) {
+		            		    System.out.println((b & 0xFF) + " HDL " + ii++);
+		            		}
+		            		*/
+		            		//3 is current temp, 6, 7, 8 and 9 is what the current heating modes is set to currently
+		            		int currentTemp = (p.data[3] &  0xff); //Not valid as long as heat controller is not monitoring cTemp. 
+		            		int normalTemp = (p.data[6] &  0xff);
+		            		int dayTemp = (p.data[7] &  0xff);
+		            		int nightTemp = (p.data[8] &  0xff);
+		            		int awayTemp = (p.data[9] &  0xff);
+		            		
+		            		System.out.println(currentTemp + " cT");
+		            		System.out.println(normalTemp + " normal");
+		            		System.out.println(dayTemp + " day");
+		            		System.out.println(nightTemp + " night");
+		            		System.out.println(awayTemp + " away");
+		            		
+		            		//Must send these variables to the DB, so that the user can see current temp 
+		            	}
+		            	if(p.command == 95){
+		            		int currentTemp = (p.data[11] &  0xff);
+		            		System.out.println(currentTemp + " cT");
+		            	}
+		            	else p = null; 
+		            	
 		            }
 		            
 					} catch (Exception e) {
-							System.out.println("Feil med melding");
+							System.out.println("Message error");
 							e.printStackTrace();
 					}
 					
@@ -273,10 +330,7 @@ public class ServerTilkobling extends JFrame {
 			data = new byte[0];
 		}
 		
-		
 		sendPacketToHDL(cmd, subnetNr, dNr, data);
-		
-		
 	}
 	private void handleMonitoringControllerMessages(String msg, UserClient u) {
 		
@@ -291,24 +345,27 @@ public class ServerTilkobling extends JFrame {
 		HDLData = getBytes(addData, cmd, subnetNr, deviceNr);
 		
 		/*
+		int i = 0;
 		for (byte b : HDLData) {
-		    System.out.println(b & 0xFF);
+		    System.out.println((b & 0xFF) + " " + i++);
 		}
 		*/
-			
-		//Tries to send packet to HDL		
-		try {
-			DatagramPacket sendPacket;
-			sendPacket = new DatagramPacket(HDLData,
-			        HDLData.length, InetAddress.getByName(HDLip), hdlPort);
-			socket.send(sendPacket);
-			displayMessage("\nPackage sent to HDL....");
-		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+		if (HDLData != null) {	
+		
+			//Tries to send packet to HDL		
+			try {
+				DatagramPacket sendPacket;
+				sendPacket = new DatagramPacket(HDLData,
+				        HDLData.length, InetAddress.getByName(HDLip), hdlPort);
+				socket.send(sendPacket);
+				displayMessage("\nPackage sent to HDL....");
+			} catch (UnknownHostException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 		}
 	}
 	
@@ -322,12 +379,18 @@ public class ServerTilkobling extends JFrame {
 	 */
 	public byte[] getBytes(byte[] data, int cmd, int subnet, int devicenr) {
 		byte[] p = new byte[27 + (data != null ? data.length : 0)];
-		
-		/*
+			  
+		try {
+			replyAddress = InetAddress.getByName("192.168.10.141");
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+			return null;
+		}
 		if(replyAddress != null) {
 			System.arraycopy(replyAddress.getAddress(), 0, p, 0, 4);
 		}
-		*/
+		
+		/*
 		String ip1 = "192";
 		String ip2 = "168";
 		String ip3 = "10";
@@ -337,10 +400,12 @@ public class ServerTilkobling extends JFrame {
 		int ipInt3 = Integer.parseInt(ip3);
 		int ipInt4 = Integer.parseInt(ip4);
 		
+		
 		p[0] = (byte) ipInt1;	//0-3 contains the IP of sender. Default 192.168.10.141
 		p[1] = (byte) ipInt2;
 		p[2] = (byte) ipInt3;
 		p[3] = (byte) ipInt4;
+		*/
 		
 		byte[] magic = "HDLMIRACLE".getBytes();
 		System.arraycopy(magic, 0, p, 4, magic.length);
