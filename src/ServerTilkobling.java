@@ -26,7 +26,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
-import org.apache.derby.database.Database;
+//import org.apache.derby.database.Database;
 
 //import com.sun.xml.internal.ws.encoding.MtomCodec.ByteArrayBuffer;
 
@@ -151,8 +151,10 @@ public class ServerTilkobling extends JFrame {
 				try {
 					Socket s = serverSocket.accept(); 
 					UserClient client = new UserClient(s);
-					user.add(client);
-					System.out.println("User connected...");
+					if( client.loginChecker()) {
+						user.add(client);
+						System.out.println("User connected...");
+					}
 					
 				} catch (IOException ioe) {
 					displayMessage("CONNECTION ERROR: " + ioe + "\n");
@@ -264,8 +266,46 @@ public class ServerTilkobling extends JFrame {
 		            		//Must send these variables to the DB, so that the user can see current temp 
 		            	}
 		            	if(p.command == 95){
+		            		/*
+		            		for (int i = 1; i < p.data.length; i++) {
+		            			System.out.println(p.data[i] + " cT");
+		            		}
+		            		*/
+		            		int channel = (p.data[2] &  0xff);
+		            		int currentMode = (p.data[5] &  0xff);
+		            		int currentNormalTemp = (p.data[6] &  0xff);
+		            		int currentDayTemp = (p.data[7] &  0xff);
+		            		int currentNightTemp =(p.data[8] &  0xff);
+		            		int currentAwayTemp = (p.data[9] &  0xff);
 		            		int currentTemp = (p.data[11] &  0xff);
+		            		
+		            		
+		            		/*
+		            		System.out.println(channel + " cC");
+		            		System.out.println(currentMode + " cM");
+		            		System.out.println(currentNormalTemp + " cNT");
+		            		System.out.println(currentDayTemp + " cDT");
+		            		System.out.println(currentNightTemp + " cNT");
+		            		System.out.println(currentAwayTemp + " cAT");
 		            		System.out.println(currentTemp + " cT");
+		            		*/
+		            		switch (channel) {
+		            		case 1:
+		            			break;
+		            			
+		            		case 2:
+		            			break;
+		            		case 3:
+		            			break;
+		            		case 4:
+		            			break;
+		            		case 5:
+		            			break;
+		            		case 6:
+		            			break;
+		            		default:
+		            			break;
+		            		}
 		            	}
 		            	else p = null; 
 		            	
