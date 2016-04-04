@@ -46,12 +46,26 @@ public class ServerTilkobling extends JFrame {
 	
 	private ArrayBlockingQueue<String> messages = new ArrayBlockingQueue<String>(50);
 		
+	public static final int MAX_PACKET_SIZE = 512;
+	
 	private String HDLip = "192.168.10.255";
+	private String HDLReceivingIP = "0.0.0.0";
 	private int serverPort = 12345;
 	private int datagramPort = 1234;
 	private int hdlPort = 6000;
 	
+	
+	
+	InetAddress listenAddress;
+	
+	//******HDL*******
+	int sourceAddress = 510;
+	int sourceDevice = 65279; //0xfeff;
+	
+	
 	public ServerTilkobling() {
+		
+		
 		
 		outputArea = new JTextArea();
 		outputArea.setFont(new Font("Ariel", Font.PLAIN, 14));
@@ -59,20 +73,23 @@ public class ServerTilkobling extends JFrame {
 		add(new JScrollPane(outputArea), BorderLayout.CENTER);
 		outputArea.setText("Server awaiting connections\n");
 		
+		setSize(600, 400);
+		setVisible(true);
+		
 		try {
-			socket = new DatagramSocket(datagramPort);
+			
+			//listenAddress = InetAddress.getLocalHost();
+			
+			socket = new DatagramSocket(null);
+			socket.setBroadcast(true);
+			socket.bind(new InetSocketAddress(InetAddress.getByName(HDLReceivingIP), hdlPort));
+			
 			serverSocket = new ServerSocket(serverPort);
 			serverSocket.setReuseAddress(true);
 			
-			/*
-			 hdlSocket = new DatagramSocket(null);
-		     InetSocketAddress address = new InetSocketAddress("192.168.10.255", 6000);
-		     hdlSocket.bind(address);
-		    */
-			//serverSocket.bind(new InetSocketAddress(serverPort));
-			
 			executorService = Executors.newCachedThreadPool();
 			
+<<<<<<< HEAD
 		/*	byte addr = 0b11111111;
 			
 			System.out.println(addr);
@@ -84,11 +101,19 @@ public class ServerTilkobling extends JFrame {
 
 			
 			//sendPacketToHDL();
+=======
+>>>>>>> refs/remotes/origin/master
 			startLoginMonitor();
 			startAPPMessageListener();
 			startHDLMessageListener();
-			
-			
+				
+			String msg1 = "Command:000002117,1,0";
+			CommandMessageController(msg1.substring(8,msg1.length()));
+			String msg2 = "Command:058336113,1,2";
+			CommandMessageController(msg2.substring(8,msg1.length()));
+			String msg3 = "Command:007262112";
+			CommandMessageController(msg2.substring(8,msg3.length()));
+			//String msg2 = "Command:"
 			//executorService.shutdown();
 			
 		} catch (IOException ioe) {
@@ -96,8 +121,7 @@ public class ServerTilkobling extends JFrame {
 			System.exit(1);
 		}
 		
-		setSize(600, 400);
-		setVisible(true);	
+			
 	}
 	
 	private void startLoginMonitor() {
@@ -110,27 +134,6 @@ public class ServerTilkobling extends JFrame {
 					UserClient client = new UserClient(s);
 					user.add(client);
 					
-					/*
-					byte[] data = new byte[100];
-		            DatagramPacket receivePacket = new DatagramPacket(data,
-		                    data.length);
-
-		            socket.receive(receivePacket);
-
-		            displayMessage("User CONNECTED!" + "\n");
-		            displayMessage("\nPacket received:"
-		                    + "\nFrom host: "
-		                    + receivePacket.getAddress()
-		                    + "\nHost port: "
-		                    + receivePacket.getPort()
-		                    + "\nLength: "
-		                    + receivePacket.getLength()
-		                    + "\nContaining: "
-		                    + new String(receivePacket.getData(), 0,
-		                            receivePacket.getLength()));
-		            
-		            sendPacketToClient(receivePacket);
-		            */
 					
 				} catch (IOException ioe) {
 					displayMessage("CONNECTION ERROR: " + ioe + "\n");
@@ -157,24 +160,19 @@ public class ServerTilkobling extends JFrame {
 							try {
 								String msg = u.read();
 								if (msg != null) {
-									System.out.println(msg);
-									//sendPacketToHDL();
+									System.out.println(msg);							
 									if (msg.equals("Disconnect")) {
 										i.remove();
 										//shandleLogout(p);
 									}
-									else if (msg.startsWith("Heat.")) // Heating-related
-										handleHeatingControllerMessages(msg.substring("Heatcontroller".length()), u);
-									else if (msg.startsWith("Vent:")) // Ventilation-related
-										handleVentilationControllerMessages(msg.substring("Ventcontroller".length()), u);
-									else if (msg.startsWith("Light:")) // Lighting-related
-										handleLightingControllerMessages(msg.substring("Lightcontroller".length()), u);
+									else if (msg.startsWith("Command:"))
+										CommandMessageController(msg.substring(8,msg.length()));		
 									else if (msg.startsWith("Monitor:")) // Monitoring-related
 										handleMonitoringControllerMessages(msg.substring("Monitorcontroller".length()), u);
 									
 									else {
+										
 									}
-									//sendPacketToHDL();
 								}
 
 							} catch (Exception e) {
@@ -202,12 +200,12 @@ public class ServerTilkobling extends JFrame {
 			while (!shutdown) {
 				Random rnd = new Random();
 				try {
-					 byte[] data = new byte[570];
+					 byte[] data = new byte[MAX_PACKET_SIZE];
 					 DatagramPacket receivePacket = new DatagramPacket(data,
 							 data.length);
 		             socket.receive(receivePacket);
-
-		             displayMessage("\nPacket received from HDL:"
+		             
+		             displayMessage("\n\nPacket received from HDL:"
 			                    + "\nFrom host: "
 			                    + receivePacket.getAddress()
 			                    + "\nHost port: "
@@ -218,6 +216,13 @@ public class ServerTilkobling extends JFrame {
 			                    + new String(receivePacket.getData(), 0,
 			                            receivePacket.getLength()));
 		             
+		            HdlPacket p = HdlPacket.parse(receivePacket.getData(), receivePacket.getLength());
+		            
+		            if(p != null) {
+		            	System.out.println("\n\nCMD*****" + p.command + "***********");
+		            	System.out.println("\n\nCMD*****" + p.data + "***********");
+		            }
+		            
 					} catch (Exception e) {
 							System.out.println("Feil med melding");
 							e.printStackTrace();
@@ -236,41 +241,54 @@ public class ServerTilkobling extends JFrame {
 	private void displayMessage(String text) {
 		SwingUtilities.invokeLater(() -> outputArea.append(text));
 	}
-	private void handleHeatingControllerMessages(String msg, UserClient u) {
-		/*
-		 * Får inn en int, denne inten viser til et gitt object i en heatcontroller klassen, som oppgir nødvendig data:
-		 * Command, area funksjonalitet, temp, osv. 
-		 */
-	}
-	private void handleVentilationControllerMessages(String msg, UserClient u) {
-		
-	}
-	private void handleLightingControllerMessages(String msg, UserClient u) {
+
+	private void CommandMessageController(String msg) {
+		//System.out.println(msg);
 		int cmd;
 		int subnetNr;
 		int dNr;
-		if (msg.charAt(7) == 0) {
-			if (msg.charAt(8)== 0) {
-				cmd = msg.charAt(9);
+		byte[] data;
+		if (msg.charAt(1) == 0) {
+			if (msg.charAt(2)== 0) {
+				if(msg.charAt(3)== 0) {
+					if(msg.charAt(4)== 0) {
+						if(msg.charAt(5) == 0) {
+							cmd = msg.charAt(6);
+						}
+						else cmd = Integer.parseInt(msg.substring(5,6));
+					}
+					else cmd = Integer.parseInt(msg.substring(4,6));
+				}
+				else cmd = Integer.parseInt(msg.substring(3,6));
 			} 
-			else cmd = Integer.parseInt(msg.substring(8,9));
+			else cmd = Integer.parseInt(msg.substring(2,6));
 		}
-		else cmd = Integer.parseInt(msg.substring(7,9));
+		else cmd = Integer.parseInt(msg.substring(1,6));
+		//System.out.println(cmd + " CMD");
 		
-		subnetNr = Integer.parseInt(msg.substring(10));
+		subnetNr = Integer.parseInt(msg.substring(6,7));
+		//System.out.println(subnetNr + " subnet");
 		
-		if(msg.charAt(11)== 0 ) {
-			dNr = msg.charAt(12);
+		if(msg.charAt(8)== 0 ) {
+			dNr = msg.charAt(9);
 		}
-		else dNr = Integer.parseInt(msg.substring(11,12));
+		else dNr = Integer.parseInt(msg.substring(7,9));
+		//System.out.println(dNr + " dnr");
 		
 		//Puts additional data from msg into a byte array. 
-		String[] byteString = msg.substring(13, msg.length() - 1).split(",");
-		byte[] data = new byte[byteString.length];
-
-		for (int i=0, len=data.length; i<len; i++) {
-		   data[i] = Byte.parseByte(byteString[i].trim());     
+		if((msg.length() >= 10 )) {
+			String[] byteString = msg.substring(10, msg.length()).split(",");
+			data = new byte[byteString.length];
+	
+			for (int i=0, len=data.length; i<len; i++) {
+			   data[i] = Byte.parseByte(byteString[i].trim());  
+			   //System.out.println(data[i] + " data");
+			}
+			
+		} else {
+			data = new byte[0];
 		}
+		
 		
 		sendPacketToHDL(cmd, subnetNr, dNr, data);
 		
@@ -279,118 +297,28 @@ public class ServerTilkobling extends JFrame {
 	private void handleMonitoringControllerMessages(String msg, UserClient u) {
 		
 	}
-	
-	/*
-	 * 
-	private void handleMessages(ClientMessage m) throws InterruptedException {
-		if (m != null) {
-			displayMessage("New message: " + m.name + "\n");
-			displayMessage("New message: " + m.address + "\n");
-			displayMessage("New message: " + m.subnetNr + "\n");
-			displayMessage("New message: " + m.deviceNr + "\n");
-		}
-	}
-	
-	private void sendPacketToClient(DatagramPacket receivePacket)
-	            throws IOException {
-	        displayMessage("\n\nEcho data to client....");
-
-	        DatagramPacket sendPacket = new DatagramPacket(receivePacket.getData(),
-	                receivePacket.getLength(), receivePacket.getAddress(),
-	                receivePacket.getPort());
-
-	        socket.send(sendPacket);
-	        displayMessage("Packet sent\n");
-    }
-	*/
-	
+		
 	private void sendPacketToHDL (int cmd, int subnetNr, int deviceNr, byte[] addData) {
-		displayMessage("\n\nEcho data to HDL....");
+		displayMessage("\n\nSending data to HDL....");
 		
 		byte[] HDLData = new byte[31];
-/*		  
-		String ip1 = "192";
-		String ip2 = "168";
-		String ip3 = "10";
-		String ip4 = "141";
-		int ipInt1 = Integer.parseInt(ip1);
-		int ipInt2 = Integer.parseInt(ip2);
-		int ipInt3 = Integer.parseInt(ip3);
-		int ipInt4 = Integer.parseInt(ip4);
 		
-		String mir = "HDLMIRACLE";
-		int[] mirInt = new int[mir.length()];
-		
-		for (int k = 0; k < mir.length(); k++) {
-			try {
-				mirInt[k] = mir.charAt(k);
-			} catch(NumberFormatException numberE){};
-		}
-	
-		
-		HDLData[0] = (byte) ipInt1;	//0-3 contains the IP of sender. Default 192.168.10.141
-		HDLData[1] = (byte) ipInt2;
-		HDLData[2] = (byte) ipInt3;
-		HDLData[3] = (byte) ipInt4;
-		
-		HDLData[4] = (byte) mirInt[0]; //4-13 contains the required string "HDLMIRACLE"
-		HDLData[5] = (byte) mirInt[1];
-		HDLData[6] = (byte) mirInt[2];
-		HDLData[7] = (byte) mirInt[3];
-		HDLData[8] = (byte) mirInt[4];
-		HDLData[9] = (byte) mirInt[5];
-		HDLData[10] = (byte) mirInt[6];
-		HDLData[11] = (byte) mirInt[7];
-		HDLData[12] = (byte) mirInt[8];
-		HDLData[13] = (byte) mirInt[9];
-		
-		
-		HDLData[14] = (byte) 170;	//Leading code
-		HDLData[15] = (byte) 170;	//Leading code
-		HDLData[16] = (byte) 15;	//Data package length	
-		HDLData[17] = (byte) 12;	//Original subnet ID
-		HDLData[18] = (byte) 254;	//Original device ID 
-		HDLData[19] = (byte) 255;	//Original device type - higher than 8
-		HDLData[20] = (byte) 254;	//Original device type - lower than 8
-		HDLData[21] = (byte) 0;		//Operation code - higher than 8
-		HDLData[22] = (byte) 49;	//Operation code - lower than 8
-		HDLData[23] = (byte) 1;		//Target subnet
-		HDLData[24] = (byte) 17;	//Target devicenr	
-		HDLData[25] = (byte) 1;		//Channel nr
-		//Lys på
-		HDLData[26] = (byte) 100;	//Intensity
-		//Lys av
-		//HDLData[26] = (byte) 0;
-		
-		HDLData[27] = (byte) 0;		//Running time - higher than 8
-		HDLData[28] = (byte) 1;		//Running time - lower than 8
-		
-		//Lys på
-		//HDLData[29] = (byte) 151;	//CRC - highter than 8
-		//HDLData[30] = (byte) 15;	//CRC - lower than 8
-		
-		//Lys av
-		HDLData[29] = (byte) 0;
-		HDLData[30] = (byte) 0;
-
+		//Retrieves the data to be sent + valid CRC
+		HDLData = getBytes(addData, cmd, subnetNr, deviceNr);
 		
 		/*
 		for (byte b : HDLData) {
 		    System.out.println(b & 0xFF);
 		}
 		*/
-		
-		
-		hdlPacket packet = new hdlPacket();
-				
-		
-		System.out.println(packet);
-				
+			
+		//Tries to send packet to HDL		
 		try {
 			DatagramPacket sendPacket;
 			sendPacket = new DatagramPacket(HDLData,
 			        HDLData.length, InetAddress.getByName(HDLip), hdlPort);
 			socket.send(sendPacket);
+			displayMessage("\nPackage sent to HDL....");
 		} catch (UnknownHostException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -400,9 +328,81 @@ public class ServerTilkobling extends JFrame {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param data 
+	 * @param cmd 
+	 * @param subnet
+	 * @param devicenr
+	 * @return
+	 */
+	public byte[] getBytes(byte[] data, int cmd, int subnet, int devicenr) {
+		byte[] p = new byte[27 + (data != null ? data.length : 0)];
+		
+		/*
+		if(replyAddress != null) {
+			System.arraycopy(replyAddress.getAddress(), 0, p, 0, 4);
+		}
+		*/
+		String ip1 = "192";
+		String ip2 = "168";
+		String ip3 = "10";
+		String ip4 = "141";
+		int ipInt1 = Integer.parseInt(ip1);
+		int ipInt2 = Integer.parseInt(ip2);
+		int ipInt3 = Integer.parseInt(ip3);
+		int ipInt4 = Integer.parseInt(ip4);
+		
+		p[0] = (byte) ipInt1;	//0-3 contains the IP of sender. Default 192.168.10.141
+		p[1] = (byte) ipInt2;
+		p[2] = (byte) ipInt3;
+		p[3] = (byte) ipInt4;
+		
+		byte[] magic = "HDLMIRACLE".getBytes();
+		System.arraycopy(magic, 0, p, 4, magic.length);
+		
+		//Setting the array values from leading code (0xAA)
+		
+		int i = 14;
+		p[i++] = (byte) 0xaa;	//Leading code: set at 170
+		p[i++] = (byte) 0xaa;	//Leading code
+		p[i++] = (byte) (p.length -16);	//Data package length
+		p[i++] = (byte) (sourceAddress >> 8);//Original subnet ID
+		p[i++] = (byte) sourceAddress;//Original device ID
+		p[i++] = (byte) (sourceDevice >> 8);//Original device type: higher than 8
+		p[i++] = (byte) sourceDevice;//Original device type: lower than 8
+		p[i++] = (byte) (cmd >> 8);	//Operationg code: higher than 8
+		p[i++] = (byte) cmd;	//Operating code: lower than 8
+		p[i++] = (byte) subnet;	//Subnet ID of target device
+		p[i++] = (byte) devicenr;	//Device ID of target device
+		
+		if (data != null) {
+			System.arraycopy(data, 0, p, i, data.length); 
+		}												 
+		//Computes the correct CRC for the data package
+		int crc = computeCRC16(p, 16, p.length - 18);
+		i = p.length -2; // -2 for the CRC
+		p[i++] = (byte)(crc >> 8);
+		p[i++] = (byte)crc;
+		
+		//returns data to be sent
+		return p;
+	}
+	
+	protected static int computeCRC16(byte[] data, int offset, int count) {
+		int crc = 0;
+		int dat;
+		
+		for (int i = offset; i < offset + count; ++i) {
+			dat = (crc >>> 8) & 0xff;
+			crc = (crc << 8) & 0xffff;
+			crc^= CRCTable[(dat ^(int)data[i]) & 0xff];
+		}
+		return crc & 0xffff;
+	}
 /********************************* CRC table *********************************/
-/*	
-	int[] CRCTable = {
+	
+	 protected static final int[] CRCTable = {
 		 0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
 		 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
 		 0x1231, 0x0210, 0x3273, 0x2252, 0x52b5, 0x4294, 0x72f7, 0x62d6,
@@ -436,8 +436,15 @@ public class ServerTilkobling extends JFrame {
 		 0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
 		 0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0 
 	};
+	 
 
 /******************************* CRC table end *******************************/
+	 
+} //Servertilkobling slutt
+
+/*
+ * Unused code*****************************************************************
+ */
 	
 	// Input parameter 1, Buffer, to CRCCeck is from length of data package
 	// (not including 0xAA, 0xAA)
@@ -503,6 +510,94 @@ public class ServerTilkobling extends JFrame {
 	// True if...no fucking clue whats going on here
 	// False if... whatever, I don't care.
 		return isRight = (ptrCount==(crc>>8)&&(ptrCount+1==dat)) ? true:false;
-	}	
+	}
+	
+	*************HDL RELATED**************
+	
+			 hdlSocket = new DatagramSocket(null);
+		     InetSocketAddress address = new InetSocketAddress("192.168.10.255", 6000);
+		     hdlSocket.bind(address);
+			//serverSocket.bind(new InetSocketAddress(serverPort));
+				String ip1 = "192";
+		String ip2 = "168";
+		String ip3 = "10";
+		String ip4 = "141";
+		int ipInt1 = Integer.parseInt(ip1);
+		int ipInt2 = Integer.parseInt(ip2);
+		int ipInt3 = Integer.parseInt(ip3);
+		int ipInt4 = Integer.parseInt(ip4);
+		
+		String mir = "HDLMIRACLE";
+		int[] mirInt = new int[mir.length()];
+		
+		for (int k = 0; k < mir.length(); k++) {
+			try {
+				mirInt[k] = mir.charAt(k);
+			} catch(NumberFormatException numberE){};
+		}
+	
+		
+		HDLData[0] = (byte) ipInt1;	//0-3 contains the IP of sender. Default 192.168.10.141
+		HDLData[1] = (byte) ipInt2;
+		HDLData[2] = (byte) ipInt3;
+		HDLData[3] = (byte) ipInt4;
+		
+		HDLData[4] = (byte) mirInt[0]; //4-13 contains the required string "HDLMIRACLE"
+		HDLData[5] = (byte) mirInt[1];
+		HDLData[6] = (byte) mirInt[2];
+		HDLData[7] = (byte) mirInt[3];
+		HDLData[8] = (byte) mirInt[4];
+		HDLData[9] = (byte) mirInt[5];
+		HDLData[10] = (byte) mirInt[6];
+		HDLData[11] = (byte) mirInt[7];
+		HDLData[12] = (byte) mirInt[8];
+		HDLData[13] = (byte) mirInt[9];
+		
+		
+		HDLData[14] = (byte) 170;	//Leading code
+		HDLData[15] = (byte) 170;	//Leading code
+		HDLData[16] = (byte) 15;	//Data package length	
+		HDLData[17] = (byte) 12;	//Original subnet ID
+		HDLData[18] = (byte) 254;	//Original device ID 
+		HDLData[19] = (byte) 255;	//Original device type - higher than 8
+		HDLData[20] = (byte) 254;	//Original device type - lower than 8
+		HDLData[21] = (byte) 0;		//Operation code - higher than 8
+		HDLData[22] = (byte) 49;	//Operation code - lower than 8
+		HDLData[23] = (byte) 1;		//Target subnet
+		HDLData[24] = (byte) 17;	//Target devicenr	
+		HDLData[25] = (byte) 1;		//Channel nr
+		//Lys på
+		HDLData[26] = (byte) 100;	//Intensity
+		//Lys av
+		//HDLData[26] = (byte) 0;
+		
+		HDLData[27] = (byte) 0;		//Running time - higher than 8
+		HDLData[28] = (byte) 1;		//Running time - lower than 8
+		
+		//Lys på
+		//HDLData[29] = (byte) 151;	//CRC - highter than 8
+		//HDLData[30] = (byte) 15;	//CRC - lower than 8
+		
+		//Lys av
+		HDLData[29] = (byte) 0;
+		HDLData[30] = (byte) 0; 
+		
+		
+		 * 
+	private void handleMessages(ClientMessage m) throws InterruptedException {
+		if (m != null) {
+			displayMessage("New message: " + m.name + "\n");
+			displayMessage("New message: " + m.address + "\n");
+			displayMessage("New message: " + m.subnetNr + "\n");
+			displayMessage("New message: " + m.deviceNr + "\n");
+		}
+	}
+	
+	
+	
 */
-}
+
+
+
+
+ 
