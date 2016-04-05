@@ -264,6 +264,7 @@ public class DatabaseHandler {
 			while(rs.next()) {
 				tempUName = rs.getString("uName");
 				tempPWord = rs.getString("pWord");
+				System.out.println(tempPWord);
 				tempId    = rs.getInt("id");
 				
 				// Checks if inputs equals the ones in DB. Hashes the input PW 

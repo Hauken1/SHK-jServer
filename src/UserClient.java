@@ -82,25 +82,30 @@ public class UserClient {
 
 		public boolean loginChecker() {
 			try {
-				String code = input.readLine();
+				
+				//String code = input.readLine();
 				String tempName = input.readLine();
 				String tempPass = input.readLine();
 
-				if (code.equals("Login")) {
-					int ID = DatabaseHandler.logIn(tempName, tempPass);
-
-					if (ID == 0) {
-						sendText(Integer.toString(ID));
-						return false;
-					}
-					userId = ID;
-					sendText(Integer.toString(userId));				// Sends the Player ID
-					return true;	
+				System.out.println(tempName);
+				System.out.println(tempPass);
+				//if (code.equals("Login")) {
+				int ID = DatabaseHandler.logIn(tempName, tempPass);
+				ID = 1; 
+				System.out.println(ID);
+					
+				if (ID == 0) {
+					sendText(Integer.toString(ID));
+					return false;
 				}
-			} catch (IOException ioe) { // catches any errors when trying to read from input
-				ioe.printStackTrace();
-			}
-			return false;
+				userId = ID;
+				sendText(Integer.toString(ID));				// Sends the Player ID
+				return true;	
+				//}
+				} catch (IOException ioe) { // catches any errors when trying to read from input
+					ioe.printStackTrace();
+				}
+				return false;
 		}
 }
 

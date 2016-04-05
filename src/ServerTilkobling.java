@@ -26,7 +26,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
-//import org.apache.derby.database.Database;
+import org.apache.derby.database.Database;
 
 //import com.sun.xml.internal.ws.encoding.MtomCodec.ByteArrayBuffer;
 
@@ -89,10 +89,8 @@ public class ServerTilkobling extends JFrame {
 			executorService = Executors.newCachedThreadPool();
 			
 			DatabaseHandler.createNewUserDB();
+			//DatabaseHandler.printDB();
 			
-		
-
-
 			startLoginMonitor();
 			startAPPMessageListener();
 			startHDLMessageListener();
@@ -151,10 +149,8 @@ public class ServerTilkobling extends JFrame {
 				try {
 					Socket s = serverSocket.accept(); 
 					UserClient client = new UserClient(s);
-					if( client.loginChecker()) {
-						user.add(client);
-						System.out.println("User connected...");
-					}
+					user.add(client);
+					System.out.println("User connected...");
 					
 				} catch (IOException ioe) {
 					displayMessage("CONNECTION ERROR: " + ioe + "\n");
@@ -186,7 +182,10 @@ public class ServerTilkobling extends JFrame {
 										i.remove();
 										//shandleLogout(p);
 									}
-									
+									else if(msg.equals("Login")){
+										if(u.loginChecker()) 
+											System.out.println("User logged in...");
+									}
 									else if (msg.startsWith("Command:"))
 										CommandMessageController(msg.substring(8,msg.length()));		
 									else if (msg.startsWith("Monitor:")) // Monitoring-related

@@ -140,7 +140,7 @@ protected static final int[] CRCTable = {
 		//sent to the applikation, based on the subnet of the
 		//panel which the command is sent to. 
 		
-		System.out.println(packet.command  + " Cmd");
+		//System.out.println(packet.command  + " Cmd");
 		
 		/*
 		int ii = 0; 
