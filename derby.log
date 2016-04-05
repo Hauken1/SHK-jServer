@@ -3,6 +3,7 @@ Mon Apr 04 16:08:05 CEST 2016:
 Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-0153-e19a-1750-000003193138 
 on database directory C:\Users\Hauken\Desktop\Programvareutvikling\WorkSpace\SHK-jServer\userDB with class loader sun.misc.Launcher$AppClassLoader@4e0e2f2a 
 Loaded from file:/C:/Users/Hauken/Desktop/Programvareutvikling/WorkSpace/derby.jar
+
 java.vendor=Oracle Corporation
 java.runtime.version=1.8.0_60-b27
 user.dir=C:\Users\Hauken\Desktop\Programvareutvikling\WorkSpace\SHK-jServer

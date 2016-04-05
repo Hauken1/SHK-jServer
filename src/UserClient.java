@@ -91,7 +91,7 @@ public class UserClient {
 				System.out.println(tempPass);
 				//if (code.equals("Login")) {
 				int ID = DatabaseHandler.logIn(tempName, tempPass);
-				ID = 1; 
+		
 				System.out.println(ID);
 					
 				if (ID == 0) {

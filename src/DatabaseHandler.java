@@ -250,9 +250,9 @@ public class DatabaseHandler {
 	 * @param uName
 	 * @param pWord
 	 */
-	public static int logIn(String uName, String pWord) {
-		String tempUName, tempPWord;
-		int tempId;
+	public static int logIn(String tempUName, String tempPWord) {
+		String uName, pWord;
+		int id;
 		
 		try {
 			connectToDB();
@@ -262,16 +262,16 @@ public class DatabaseHandler {
 			ResultSet rs = stmt.getResultSet();
 			
 			while(rs.next()) {
-				tempUName = rs.getString("uName");
-				tempPWord = rs.getString("pWord");
-				System.out.println(tempPWord);
-				tempId    = rs.getInt("id");
+
+				uName = rs.getString("uName");	// Gets from DB
+				pWord = rs.getString("pWord");	// -||-
+				id    = rs.getInt("id");		// -||-
 				
 				// Checks if inputs equals the ones in DB. Hashes the input PW 
 				// to see if it matches the one in the DB.
-				if(tempUName.equals(uName) && tempPWord.equals(pWord)) {
+				if(uName.equals(tempUName) && pWord.equals(hasher(tempPWord))) {
 				// If everything is OK, it returns the id of the user		
-					return tempId;
+					return id;
 				}
 			}
 		} catch (SQLException sqle) {
