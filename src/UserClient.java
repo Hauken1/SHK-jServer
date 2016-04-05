@@ -94,7 +94,7 @@ public class UserClient {
 						return false;
 					}
 					userId = ID;
-					sendText(Integer.toString(userId));				// Sends the Player ID
+					sendText(Integer.toString(userId));		// Sends the Player ID
 					return true;	
 				}
 			} catch (IOException ioe) { // catches any errors when trying to read from input
