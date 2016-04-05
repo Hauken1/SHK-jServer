@@ -25,7 +25,6 @@ import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
-
 import org.apache.derby.database.Database;
 
 //import com.sun.xml.internal.ws.encoding.MtomCodec.ByteArrayBuffer;
