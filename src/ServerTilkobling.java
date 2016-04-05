@@ -36,23 +36,17 @@ public class ServerTilkobling extends JFrame {
 	private DatagramSocket hdlSocket;
 	private static ServerSocket serverSocket; 
 	ExecutorService executorService;
-	
 	private JTextArea outputArea;
-	
 	private boolean shutdown = false;
-	
 	private ArrayList<UserClient> user = new ArrayList<UserClient>();
 	private ArrayList<ClientMessage> m = new ArrayList<ClientMessage>();
-	
-	private ArrayBlockingQueue<String> messages = new ArrayBlockingQueue<String>(50);
-		
+	private ArrayBlockingQueue<String> messages = new ArrayBlockingQueue<String>(50);	
 	public static final int MAX_PACKET_SIZE = 512;
 	
 
 	private InetAddress replyAddress; 
 	private int serverPort = 12345;
 	private int datagramPort = 1234;
-	
 	
 	InetAddress listenAddress;
 	
@@ -139,9 +133,7 @@ public class ServerTilkobling extends JFrame {
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 			System.exit(1);
-		}
-		
-			
+		}			
 	}
 	
 	private void startLoginMonitor() {
