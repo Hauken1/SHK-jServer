@@ -26,6 +26,7 @@ public class UserClient {
 		private BufferedWriter output;
 		private static ArrayList<String> message = new ArrayList<String>();
 		int userId; 
+		boolean connected = false;
 		
 		
 		/**
@@ -42,9 +43,7 @@ public class UserClient {
 				this.connection = connection;
 				input = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 				output = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));
-
-					
-					
+				connected = true;						
 			} catch (IOException ioe) {
 				ioe.printStackTrace(); 
 		//		throw new Exception("Kunne ikke åpne stream fra klient");
@@ -79,21 +78,43 @@ public class UserClient {
 			output.newLine();
 			output.flush();
 		}
+		public int returnUserIDInt() {
+			return userId;
+		}
 		public String returnUserID() {
 			String uId;
 			
 			 uId = Integer.toString(userId);
 			 return uId;
 		}
-		public void SetSocket(Socket connection) {
-			connection = connection;
+		public boolean returnConnected() {
+			return connected;
+		}
+		public void setFalseConnection(){
+			connected = false;
+			connection = null;
+			input = null;
+			output = null;
+		}
+		public void setSocket(Socket connection) {
+			try {
+				connected = true;
+				this.connection = connection;
+				input = new BufferedReader(new InputStreamReader(this.connection.getInputStream()));
+				output = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream()));
+			} catch(Exception e){
+				e.printStackTrace();
+			}
 		}
 		public Socket returnSocket() {
 			return connection;
 		}
 		public String read() throws IOException {
-			if (input.ready())
-				return input.readLine();
+			if(connected){
+				if (input.ready())
+					return input.readLine();
+				return null;
+			}
 			return null;
 		}
 

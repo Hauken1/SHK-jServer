@@ -41,7 +41,9 @@ public class ServerTilkobling extends JFrame {
 	ExecutorService executorService;
 	private JTextArea outputArea;
 	private boolean shutdown = false;
+	boolean uniqueUser = false;
 	private ArrayList<UserClient> user = new ArrayList<UserClient>();
+	private ArrayList<UserClient> tempUser = new ArrayList<UserClient>();
 	private ArrayList<ClientMessage> m = new ArrayList<ClientMessage>();
 	private ArrayBlockingQueue<String> messages = new ArrayBlockingQueue<String>(50);	
 	public static final int MAX_PACKET_SIZE = 512;
@@ -90,7 +92,13 @@ public class ServerTilkobling extends JFrame {
 			DatabaseHandler.createNewUserDB();
 			//DatabaseHandler.printDB();
 			
+			for(int i=1; i <= 4; i++ ) {
+				UserClient client = new UserClient(i);
+				user.add(client);
+				System.out.println("Adder user..." + i);
+			}
 			startLoginMonitor();
+			startAPPLoginListener();
 			startAPPMessageListener();
 			startHDLMessageListener();
 				
@@ -148,38 +156,103 @@ public class ServerTilkobling extends JFrame {
 				try {
 					Socket s = serverSocket.accept(); 
 					
-					if(!(user.isEmpty())) {
-						for(int i=0; i < user.size(); i++) {
-							if(!(s == user.get(i).returnSocket())){
+					if(!(tempUser.isEmpty())) {
+						for(int i=0; i < tempUser.size(); i++) {
+							if((s == tempUser.get(i).returnSocket()) && uniqueUser == false){
+								uniqueUser = true;
+								tempUser.remove(i);
 								UserClient client = new UserClient(s);
-								user.add(client);
-								System.out.println("User connected...");
-								
-							}
-							else {
-								user.remove(i);
-								UserClient client = new UserClient(s);
-								user.add(client);
-								System.out.println("Replaced user...");
-								//s.close();
-							}
+								tempUser.add(client);
+								System.out.println("Replaced user...");	
+							}		
+						}
+						if(uniqueUser == false){
+							UserClient client = new UserClient(s);
+							tempUser.add(client);
 						}
 					}
 					else {
 						UserClient client = new UserClient(s);
-						user.add(client);
+						tempUser.add(client);
 						System.out.println("User connected...");
 					}
-					
+					uniqueUser = false;
 				} catch (IOException ioe) {
 					displayMessage("CONNECTION ERROR: " + ioe + "\n");
 				}
 				 try {
-						TimeUnit.MILLISECONDS.sleep(rnd.nextInt(100) * 10);
+						TimeUnit.MILLISECONDS.sleep(rnd.nextInt(200) * 10);
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
+			}
+		});
+	}
+	
+	private void startAPPLoginListener() {
+		executorService.execute(() -> {
+			while (!shutdown) {
+				Random rnd = new Random();
+				try {
+					synchronized(tempUser) {
+						Iterator<UserClient> i = tempUser.iterator();
+						while (i.hasNext()) {
+							UserClient u = i.next();
+							try {
+								String msg = u.read();
+								if (msg != null) {
+									System.out.println(msg);							
+									if (msg.equals("Disconnect")) {
+										System.out.println("Removing user:" + u.returnUserID());
+										i.remove();
+										tempUser.remove(i);
+										//shandleLogout(p);
+									}
+									else if(msg.equals("Login")){
+										if(u.loginChecker()){ 
+											System.out.println("User logged in...");
+											int id = u.returnUserIDInt();
+											Socket connection = u.returnSocket();
+											i.remove();
+											System.out.println("Fjernet temp bruker");
+											user.get(id).setSocket(connection);
+										}
+									}
+								}
+							} catch (Exception e) {
+								System.out.println("Error with message");
+								e.printStackTrace();
+							}
+							/*
+							if(!u.returnSocket().isConnected() && u.returnSocket().isClosed()) {
+								System.out.println("Fjerner bruker:" + u.returnUserID());
+								user.remove(u);
+								i.remove();
+							}
+							*/
+						algo++;
+						if(algo == 500 && (u.userId >= 0)) {
+							try {
+								algo = 0;
+								u.sendText("Ping");
+							} catch (Exception e) {
+								i.remove();
+								System.out.println("Removed user");
+							}
+						}
+						if(algo > 500) algo = 0;
+						}
+					}
+				 try {
+						TimeUnit.MILLISECONDS.sleep(rnd.nextInt(200) * 10);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				} catch (Exception ie) {
+					ie.printStackTrace();
+				}
 			}
 		});
 	}
@@ -238,13 +311,14 @@ public class ServerTilkobling extends JFrame {
 							*/
 						algo++;
 						//System.out.println(algo);
-						if(algo == 500 && (u.userId >= 0)) {
+						if(algo == 100 && (u.userId >= 0)) {
 							try {
 								algo = 0;
-								u.sendText("Ping");
+								if(u.returnConnected()) u.sendText("Ping");
 							} catch (Exception e) {
-								i.remove();
-								System.out.println("Removed user");
+								//i.remove();
+								u.setFalseConnection();
+								System.out.println("Connection of user removed");
 							}
 						}
 						if(algo > 500) algo = 0;
