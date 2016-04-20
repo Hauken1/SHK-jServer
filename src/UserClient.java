@@ -8,6 +8,7 @@ import java.net.DatagramSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,10 +24,9 @@ public class UserClient {
 		private Socket connection;
 		private BufferedReader input;
 		private BufferedWriter output;
-		private ArrayList<ClientMessage> message = new ArrayList<ClientMessage>();
-		String uName = "";
-		String pWord = "";
+		private static ArrayList<String> message = new ArrayList<String>();
 		int userId; 
+		
 		
 		/**
 		 * Constructor for the UserClient class.
@@ -51,6 +51,11 @@ public class UserClient {
 				}
 			}
 		
+		//For testing purposes
+		
+		public UserClient(int n) {
+			userId = n;
+		}
 		
 		/**
 		 * Closes the buffered reader, the buffered writer and the socket connection
@@ -60,6 +65,7 @@ public class UserClient {
 			input.close();
 			output.close();
 			connection.close();
+			
 		}
 		
 		/**
@@ -73,23 +79,48 @@ public class UserClient {
 			output.newLine();
 			output.flush();
 		}
-		
+		public String returnUserID() {
+			String uId;
+			
+			 uId = Integer.toString(userId);
+			 return uId;
+		}
+		public void SetSocket(Socket connection) {
+			connection = connection;
+		}
+		public Socket returnSocket() {
+			return connection;
+		}
 		public String read() throws IOException {
 			if (input.ready())
 				return input.readLine();
 			return null;
 		}
 
+		public void addMessage(String cmd) {
+			//System.out.println(cmd + " user mg1");
+			message.add(cmd);
+		}
+		
+		public void removeMessage(int n) {
+			message.remove(n);
+		}
+		public boolean checkForMessage(String messagecmd) {
+			for(int i = 0; i < message.size(); i++) {
+				System.out.println(message.get(i) + " UserMessage");
+				if( message.get(i).startsWith(messagecmd) && message.get(i).endsWith(Integer.toString(userId))) {
+					message.remove(i);
+					return true; 
+				}
+			}
+			return false;
+		}
+		
 		public boolean loginChecker() {
 			try {
-				
-				//String code = input.readLine();
 				String tempName = input.readLine();
 				String tempPass = input.readLine();
 
-				System.out.println(tempName);
-				System.out.println(tempPass);
-				//if (code.equals("Login")) {
 				int ID = DatabaseHandler.logIn(tempName, tempPass);
 		
 				System.out.println(ID);
@@ -101,11 +132,50 @@ public class UserClient {
 				userId = ID;
 				sendText(Integer.toString(ID));				// Sends the Player ID
 				return true;	
-				//}
+				
 				} catch (IOException ioe) { // catches any errors when trying to read from input
 					ioe.printStackTrace();
 				}
 				return false;
+		}
+		
+		public boolean changePassword() {
+			try {
+				
+				String userName = input.readLine();
+				String oldpass = input.readLine();
+				String newPass = input.readLine();
+				
+				//using login method to see if the old password is correct
+				int loginTest = DatabaseHandler.logIn(userName, oldpass);
+				
+				if(loginTest > 0){
+					DatabaseHandler.updatePW(userName, newPass);
+					sendText("PChanged");
+					return true;
+				}
+				sendText("Failed");
+				return false;
+			}catch (IOException e) {
+				e.printStackTrace();
+			}
+			return false;
+		}
+		
+		public void holidayTimer(long s) {
+			
+			Thread holidayThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+			    try {
+			        //Thread sleeps and will run the necessary methods when done
+			        TimeUnit.SECONDS.sleep(s);
+			    } catch(InterruptedException ie) {}
+			    System.out.println("Hello world!");
+                }
+			});
+			holidayThread.start();
+			
 		}
 }
 

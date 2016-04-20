@@ -7,12 +7,15 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -57,6 +60,8 @@ public class ServerTilkobling extends JFrame {
 	private String HDLReceivingIP = "0.0.0.0";
 	private int hdlPort = 6000;
 	
+	int algo = 0;
+	
 	
 	public ServerTilkobling() {
 		
@@ -94,24 +99,26 @@ public class ServerTilkobling extends JFrame {
 			String msg1 = "Command:000002117,1,0";
 			CommandMessageController(msg1.substring(8,msg1.length()));
 			
-			/*
-			String msg2 = "Command:007262112,1";
-			CommandMessageController(msg2.substring(8,msg2.length()));
 			*/
-			//Varmestyring
-			//String msg2 = "Command:006470120,0,1,1,25,25,25,25";
-
+			//String msg2 = "Command:007262112,1";
 			//CommandMessageController(msg2.substring(8,msg2.length()));
+			
+			//Varmestyring
+			//UserClient u = new UserClient();
+			//String msg2 = "Command:007260112,1,0,0,1,29,29,29,29,1,5";
+
+			//CommandMessageController(u, msg2.substring(8,msg2.length()));
 			//info 7262
 			//lese av temperatur på varmestyringskontroller
-			String msg3 = "Command:007262112,2";
+			
+			//String msg3 = "Command:007262112,1";
 			//String msg2 = "Command:006468120";
 			//String msg2 = "Command:007262112,1";
 			//CommandMessageController(msg2.substring(8,msg2.length()));
-			CommandMessageController(msg3.substring(8,msg3.length()));
+			//CommandMessageController(msg3.substring(8,msg3.length()));
 			//Rele command 49 (singel channel ligthing) 
 			//String msg2 = "Command:000002117,1,0";
-			//CommandMessageController(msg2.substring(8,msg2.length()));
+			//CommandMessageController(u,msg2.substring(8,msg2.length()));
 			/*
 			String msg3 = "Command:000049114,2,100,0,1";
 			CommandMessageController(msg3.substring(8,msg3.length()));
@@ -140,9 +147,30 @@ public class ServerTilkobling extends JFrame {
 				Random rnd = new Random();
 				try {
 					Socket s = serverSocket.accept(); 
-					UserClient client = new UserClient(s);
-					user.add(client);
-					System.out.println("User connected...");
+					
+					if(!(user.isEmpty())) {
+						for(int i=0; i < user.size(); i++) {
+							if(!(s == user.get(i).returnSocket())){
+								UserClient client = new UserClient(s);
+								user.add(client);
+								System.out.println("User connected...");
+								
+							}
+							else {
+								//test
+								user.remove(i);
+								UserClient client = new UserClient(s);
+								user.add(client);
+								System.out.println("Replaced user...");
+								//s.close();
+							}
+						}
+					}
+					else {
+						UserClient client = new UserClient(s);
+						user.add(client);
+						System.out.println("User connected...");
+					}
 					
 				} catch (IOException ioe) {
 					displayMessage("CONNECTION ERROR: " + ioe + "\n");
@@ -171,27 +199,56 @@ public class ServerTilkobling extends JFrame {
 								if (msg != null) {
 									System.out.println(msg);							
 									if (msg.equals("Disconnect")) {
+										System.out.println("Removing user:" + u.returnUserID());
 										i.remove();
+										user.remove(i);
 										//shandleLogout(p);
+									}
+									else if (msg.startsWith("Command:")) {
+										CommandMessageController(u, msg.substring(8,msg.length()));
+										 
 									}
 									else if(msg.equals("Login")){
 										if(u.loginChecker()) 
 											System.out.println("User logged in...");
 									}
-									else if (msg.startsWith("Command:"))
-										CommandMessageController(msg.substring(8,msg.length()));		
-									else if (msg.startsWith("Monitor:")) // Monitoring-related
+									else if(msg.equals("ChangePW")){
+										if(u.changePassword()) System.out.println("User changed password...");
+									}
+									else if (msg.startsWith("Monitor:")){ // Monitoring-related
 										handleMonitoringControllerMessages(msg.substring(8,msg.length()), u);
-									
+									}
+									else if (msg.startsWith("HolidayT:")) {
+										handleHolidayTimerMessages(msg.substring(9,msg.length()),u);	
+									}
 									else {
 										
 									}
 								}
 
 							} catch (Exception e) {
-								System.out.println("Feil med melding");
+								System.out.println("Error with message");
 								e.printStackTrace();
 							}
+							/*
+							if(!u.returnSocket().isConnected() && u.returnSocket().isClosed()) {
+								System.out.println("Fjerner bruker:" + u.returnUserID());
+								user.remove(u);
+								i.remove();
+							}
+							*/
+						algo++;
+						//System.out.println(algo);
+						if(algo == 500 && (u.userId >= 0)) {
+							try {
+								algo = 0;
+								u.sendText("Ping");
+							} catch (Exception e) {
+								i.remove();
+								System.out.println("Removed user");
+							}
+						}
+						if(algo > 500) algo = 0;
 						}
 					}
 				 try {
@@ -200,7 +257,8 @@ public class ServerTilkobling extends JFrame {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-				 
+				
+				
 				} catch (Exception ie) {
 					ie.printStackTrace();
 				}
@@ -231,32 +289,61 @@ public class ServerTilkobling extends JFrame {
 			                            receivePacket.getLength()));
 		             */
 		            HdlPacket p = HdlPacket.parse(receivePacket.getData(), receivePacket.getLength());
-		            
+		            //Tempinfo received when temperature is changed on the heating controller
 		            if(p != null) {
-		            	if(p.command == 71/*69*/) {	//Read temperature
-		            		
+		            	if(p.command == 93/*71 / 69*/) {	
+		            		String messageCommand = "7260"/*"6470"*/;
+		       
 		            		/*
 		            		int ii = 0; 
 		            		for (byte b : p.data) {
 		            		    System.out.println((b & 0xFF) + " HDL " + ii++);
 		            		}
-		            		*/
+		           			*/
 		            		//3 is current temp, 6, 7, 8 and 9 is what the current heating modes is set to currently
-		            		int currentTemp = (p.data[3] &  0xff); //Not valid as long as heat controller is not monitoring cTemp. 
-		            		int normalTemp = (p.data[6] &  0xff);
-		            		int dayTemp = (p.data[7] &  0xff);
-		            		int nightTemp = (p.data[8] &  0xff);
-		            		int awayTemp = (p.data[9] &  0xff);
+		            	//	int currentTemp = (p.data[3] &  0xff); //Not valid as long as heat controller is not monitoring cTemp.
 		            		
-		            		System.out.println(currentTemp + " cT");
+		            		int channel = (p.data[2] &  0xff);	//Channel of heating controller
+		            		int currentMode = (p.data[5] &  0xff); //Channel mode
+		            		int normalTemp = (p.data[6] &  0xff); //Normal temp
+		            		int dayTemp = (p.data[7] &  0xff);	//Day temp
+		            		int nightTemp = (p.data[8] &  0xff); //Night temp
+		            		int awayTemp = (p.data[9] &  0xff); //Away temp
+		            		int currentTemp = (p.data[11] &  0xff);
+		            		
+		            		/*
+		            		System.out.println(channel + " cC");
+		            		System.out.println(currentMode + " cM");
 		            		System.out.println(normalTemp + " normal");
 		            		System.out.println(dayTemp + " day");
 		            		System.out.println(nightTemp + " night");
 		            		System.out.println(awayTemp + " away");
+		            		System.out.println(currentTemp + " ct");
+		            		*/
+		            		String sChannel = Integer.toString(channel);
+		            		String sCurrentMode = Integer.toString(currentMode);
+		            		String sCurrentNormalTemp = Integer.toString(normalTemp);
+		            		String sCurrentDayTemp = Integer.toString(dayTemp);
+		            		String sCurrentNightTemp = Integer.toString(nightTemp);
+		            		String sCurrentAwayTemp = Integer.toString(awayTemp);
+		            		String sCurrentTemp = Integer.toString(currentTemp);
 		            		
-		            		//Must send these variables to the DB, so that the user can see current temp 
+		            		for(int i = 0; i < user.size(); i++) {
+		            			UserClient u = user.get(i);
+								if(u.checkForMessage(messageCommand)) {
+									
+									u.sendText("TempInfo:" + sChannel + sCurrentMode + sCurrentNormalTemp + sCurrentDayTemp
+													+ sCurrentNightTemp + sCurrentAwayTemp + sCurrentTemp);
+									System.out.println("Message sent to user:" + i);
+									System.out.println("TempInfo:" + sChannel + sCurrentMode + sCurrentNormalTemp + sCurrentDayTemp
+											+ sCurrentNightTemp + sCurrentAwayTemp + sCurrentTemp);
+			            		}	
+							}
+		            		
+		            		
 		            	}
-		            	if(p.command == 95){
+		            	if(p.command == 95){	//Tempinfo for the a certain channel of the heating controller 
+		            		String messageCommand = "7262";
 		            		/*
 		            		for (int i = 1; i < p.data.length; i++) {
 		            			System.out.println(p.data[i] + " cT");
@@ -270,6 +357,13 @@ public class ServerTilkobling extends JFrame {
 		            		int currentAwayTemp = (p.data[9] &  0xff);
 		            		int currentTemp = (p.data[11] &  0xff);
 		            		
+		            		String sChannel = Integer.toString(channel);
+		            		String sCurrentMode = Integer.toString(currentMode);
+		            		String sCurrentNormalTemp = Integer.toString(currentNormalTemp);
+		            		String sCurrentDayTemp = Integer.toString(currentDayTemp);
+		            		String sCurrentNightTemp = Integer.toString(currentNightTemp);
+		            		String sCurrentAwayTemp = Integer.toString(currentAwayTemp);
+		            		String sCurrentTemp = Integer.toString(currentTemp);
 		            		
 		            		/*
 		            		System.out.println(channel + " cC");
@@ -280,23 +374,17 @@ public class ServerTilkobling extends JFrame {
 		            		System.out.println(currentAwayTemp + " cAT");
 		            		System.out.println(currentTemp + " cT");
 		            		*/
-		            		switch (channel) {
-		            		case 1:
-		            			break;
-		            			
-		            		case 2:
-		            			break;
-		            		case 3:
-		            			break;
-		            		case 4:
-		            			break;
-		            		case 5:
-		            			break;
-		            		case 6:
-		            			break;
-		            		default:
-		            			break;
-		            		}
+		            		for(int i = 0; i < user.size(); i++) {
+		            			UserClient u = user.get(i);
+								if(u.checkForMessage(messageCommand)) {
+									
+									u.sendText("TempInfo:" + sChannel + sCurrentMode + sCurrentNormalTemp + sCurrentDayTemp
+													+ sCurrentNightTemp + sCurrentAwayTemp + sCurrentTemp);
+									System.out.println("Message sent to user:" + i);
+									System.out.println("TempInfo:" + sChannel + sCurrentMode + sCurrentNormalTemp + sCurrentDayTemp
+											+ sCurrentNightTemp + sCurrentAwayTemp + sCurrentTemp);
+			            		}	
+							}	
 		            	}
 		            	else p = null; 
 		            	
@@ -321,7 +409,7 @@ public class ServerTilkobling extends JFrame {
 		SwingUtilities.invokeLater(() -> outputArea.append(text));
 	}
 
-	private void CommandMessageController(String msg) {
+	private void CommandMessageController(UserClient u, String msg) {
 		//System.out.println(msg);
 		int cmd;
 		int subnetNr;
@@ -334,17 +422,47 @@ public class ServerTilkobling extends JFrame {
 						if(msg.charAt(5) == 0) {
 							cmd = msg.charAt(6);
 						}
-						else cmd = Integer.parseInt(msg.substring(5,6));
+						else {
+							//System.out.println("1 test");
+							cmd = Integer.parseInt(msg.substring(5,6));
+						}
 					}
-					else cmd = Integer.parseInt(msg.substring(4,6));
+					else {
+						//System.out.println("2 test");
+						cmd = Integer.parseInt(msg.substring(4,6));
+					}
 				}
-				else cmd = Integer.parseInt(msg.substring(3,6));
+				else {
+					//System.out.println(" msgCmd 3-6");
+					
+					cmd = Integer.parseInt(msg.substring(3,6));
+					//System.out.println(" msgCmd");
+				}
 			} 
-			else cmd = Integer.parseInt(msg.substring(2,6));
+			else {
+				//System.out.println(" msgCmd 2-6");
+				cmd = Integer.parseInt(msg.substring(2,6));
+			}
 		}
-		else cmd = Integer.parseInt(msg.substring(1,6));
-		//System.out.println(cmd + " CMD");
+		else {
+			//System.out.println("Test slutt");
+			if(msg.substring(1,6).endsWith("7262")){
+				//System.out.println(" msgCmd 1-6 slutt");
+				u.addMessage(msg.substring(2,6) + u.returnUserID());
+			}
+			else if(msg.substring(1, 6).endsWith("7260")){
+				u.addMessage(msg.substring(2,6) + u.returnUserID());
+			}
+			else if(msg.substring(1, 6).endsWith("6470")){
+				u.addMessage(msg.substring(2,6) + u.returnUserID());
+			}
+			cmd = Integer.parseInt(msg.substring(1,6));
+		}
 		
+		//System.out.println(cmd + " Cmd slutt");
+			
+		//System.out.println(cmd + " CMD");
+			
 		subnetNr = Integer.parseInt(msg.substring(6,7));
 		//System.out.println(subnetNr + " subnet");
 		
@@ -371,6 +489,55 @@ public class ServerTilkobling extends JFrame {
 		sendPacketToHDL(cmd, subnetNr, dNr, data);
 	}
 	private void handleMonitoringControllerMessages(String msg, UserClient u) {
+		
+	}
+	
+	private void handleHolidayTimerMessages(String msg, UserClient u){
+		
+		try {
+		String[] textString = msg.substring(0, msg.length()).split(",");
+		String[] data = new String[textString.length];
+
+		
+		for (int i=0, len=data.length; i<len; i++) {
+		   data[i] = textString[i].trim();  
+		   System.out.println(data[i] + " data");
+		}
+		
+		int year = Integer.parseInt(data[0]);
+		int month = Integer.parseInt(data[1]);
+		int day = Integer.parseInt(data[2]);
+		int hours = Integer.parseInt(data[3]);
+		int minutes = Integer.parseInt(data[4]);
+		int changeHours = Integer.parseInt(data[5]);
+		String modeToChange = data[6];
+		
+		String fMonth = String.format("%02d", month);
+		String fDay = String.format("%02d", day);
+		String fHours = String.format("%02d", hours);
+		String fMinutes = String.format("%02d", minutes);
+		
+		System.out.println(fMonth);
+		System.out.println(fDay);
+		System.out.println(fHours);
+		System.out.println(fMinutes);
+		
+		Date d1 = new Date();
+		String holidayDate = data[0] + "-" + fMonth + "-" + fDay + " " + fHours + ":" + fMinutes;
+		Date d2 = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(holidayDate);
+		System.out.println(d2);
+		System.out.println(d1);	
+		
+		long seconds = (d2.getTime()-d1.getTime())/1000;
+		System.out.println(seconds);
+		
+		u.holidayTimer(seconds);
+        //TimeUnit.SECONDS.sleep();
+		
+		}catch(Exception e){
+			e.printStackTrace();
+			
+		}
 		
 	}
 		
@@ -526,7 +693,7 @@ public class ServerTilkobling extends JFrame {
 	 
 
 /******************************* CRC table end *******************************/
-	 
+	 	 
 } //Servertilkobling slutt
 
 /*
