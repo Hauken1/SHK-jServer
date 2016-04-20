@@ -149,6 +149,7 @@ protected static final int[] CRCTable = {
 		}
 		*/
 		
+		
 		if((data.length > 27 )) {
 			//byte[] hdldat = new byte[length - 25/*data.length - 480*/ ];
 			packet.data = new byte[length - 25];

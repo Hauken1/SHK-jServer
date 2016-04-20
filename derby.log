@@ -1,11 +1,11 @@
 ----------------------------------------------------------------
-Mon Apr 04 11:49:04 CEST 2016:
-Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-0153-e0ac-f2f2-0000060ae8e8 
-on database directory C:\Users\Edvard\Documents\GitHub\SHK-jServer\userDB with class loader sun.misc.Launcher$AppClassLoader@4e0e2f2a 
-Loaded from file:/C:/Users/Edvard/Documents/GitHub/SHK-jServer/lib/derby.jar
+Wed Apr 20 15:02:20 CEST 2016:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-0154-33c3-a313-0000031d47b0 
+on database directory C:\Users\Hauken\Desktop\Programvareutvikling\WorkSpace\SHK-jServer\userDB with class loader sun.misc.Launcher$AppClassLoader@4e0e2f2a 
+Loaded from file:/C:/Users/Hauken/Desktop/Programvareutvikling/WorkSpace/derby.jar
 java.vendor=Oracle Corporation
-java.runtime.version=1.8.0_73-b02
-user.dir=C:\Users\Edvard\Documents\GitHub\SHK-jServer
+java.runtime.version=1.8.0_60-b27
+user.dir=C:\Users\Hauken\Desktop\Programvareutvikling\WorkSpace\SHK-jServer
 os.name=Windows 10
 os.arch=amd64
 os.version=10.0

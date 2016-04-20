@@ -262,6 +262,7 @@ public class DatabaseHandler {
 			ResultSet rs = stmt.getResultSet();
 			
 			while(rs.next()) {
+
 				uName = rs.getString("uName");	// Gets from DB
 				pWord = rs.getString("pWord");	// -||-
 				id    = rs.getInt("id");		// -||-
