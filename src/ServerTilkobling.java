@@ -157,7 +157,6 @@ public class ServerTilkobling extends JFrame {
 								
 							}
 							else {
-								//test
 								user.remove(i);
 								UserClient client = new UserClient(s);
 								user.add(client);
@@ -532,7 +531,7 @@ public class ServerTilkobling extends JFrame {
 		System.out.println(seconds);
 		
 		u.holidayTimer(seconds);
-        //TimeUnit.SECONDS.sleep();
+        
 		
 		}catch(Exception e){
 			e.printStackTrace();
