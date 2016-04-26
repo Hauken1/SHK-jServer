@@ -41,7 +41,9 @@ public class ServerTilkobling extends JFrame {
 	ExecutorService executorService;
 	private JTextArea outputArea;
 	private boolean shutdown = false;
+	boolean uniqueUser = false;
 	private ArrayList<UserClient> user = new ArrayList<UserClient>();
+	private ArrayList<UserClient> tempUser = new ArrayList<UserClient>();
 	private ArrayList<ClientMessage> m = new ArrayList<ClientMessage>();
 	private ArrayBlockingQueue<String> messages = new ArrayBlockingQueue<String>(50);	
 	public static final int MAX_PACKET_SIZE = 512;
@@ -90,9 +92,16 @@ public class ServerTilkobling extends JFrame {
 			DatabaseHandler.createNewUserDB();
 			//DatabaseHandler.printDB();
 			
+			for(int i=1; i <= 4; i++ ) {
+				UserClient client = new UserClient(i);
+				user.add(client);
+				System.out.println("Adder user..." + i);
+			}
 			startLoginMonitor();
+			startAPPLoginListener();
 			startAPPMessageListener();
 			startHDLMessageListener();
+			startSmartMessageListener();
 				
 			/**/
 			/*
@@ -148,38 +157,104 @@ public class ServerTilkobling extends JFrame {
 				try {
 					Socket s = serverSocket.accept(); 
 					
-					if(!(user.isEmpty())) {
-						for(int i=0; i < user.size(); i++) {
-							if(!(s == user.get(i).returnSocket())){
+					if(!(tempUser.isEmpty())) {
+						for(int i=0; i < tempUser.size(); i++) {
+							if((s == tempUser.get(i).returnSocket()) && uniqueUser == false){
+								uniqueUser = true;
+								tempUser.remove(i);
 								UserClient client = new UserClient(s);
-								user.add(client);
-								System.out.println("User connected...");
-								
-							}
-							else {
-								user.remove(i);
-								UserClient client = new UserClient(s);
-								user.add(client);
-								System.out.println("Replaced user...");
-								//s.close();
-							}
+								tempUser.add(client);
+								System.out.println("Replaced user...");	
+							}		
+						}
+						if(uniqueUser == false){
+							UserClient client = new UserClient(s);
+							tempUser.add(client);
 						}
 					}
 					else {
 						UserClient client = new UserClient(s);
-						user.add(client);
+						tempUser.add(client);
 						System.out.println("User connected...");
 					}
-					
+					uniqueUser = false;
 				} catch (IOException ioe) {
 					displayMessage("CONNECTION ERROR: " + ioe + "\n");
 				}
 				 try {
-						TimeUnit.MILLISECONDS.sleep(rnd.nextInt(100) * 10);
+						TimeUnit.MILLISECONDS.sleep(rnd.nextInt(200) * 10);
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
+			}
+		});
+	}
+	
+	private void startAPPLoginListener() {
+		executorService.execute(() -> {
+			while (!shutdown) {
+				Random rnd = new Random();
+				try {
+					synchronized(tempUser) {
+						Iterator<UserClient> i = tempUser.iterator();
+						while (i.hasNext()) {
+							UserClient u = i.next();
+							try {
+								String msg = u.read();
+								if (msg != null) {
+									System.out.println(msg);							
+									if (msg.equals("Disconnect")) {
+										System.out.println("Removing user:" + u.returnUserID());
+										i.remove();
+										tempUser.remove(i);
+										//shandleLogout(p);
+									}
+									else if(msg.equals("Login")){
+										if(u.loginChecker()){ 
+											System.out.println("User logged in...");
+											int id = u.returnUserIDInt();
+											Socket connection = u.returnSocket();
+											i.remove();
+											System.out.println("Removed temp user");
+											user.get(id).setSocket(connection);
+											user.get(id).sendText(Integer.toString(id));
+										}
+									}
+								}
+							} catch (Exception e) {
+								System.out.println("Error with message");
+								e.printStackTrace();
+							}
+							/*
+							if(!u.returnSocket().isConnected() && u.returnSocket().isClosed()) {
+								System.out.println("Fjerner bruker:" + u.returnUserID());
+								user.remove(u);
+								i.remove();
+							}
+							*/
+						algo++;
+						if(algo == 100 && (u.userId >= 0)) {
+							try {
+								algo = 0;
+								u.sendText("Ping");
+							} catch (Exception e) {
+								i.remove();
+								System.out.println("Removed user");
+							}
+						}
+						if(algo > 100) algo = 0;
+						}
+					}
+				 try {
+						TimeUnit.MILLISECONDS.sleep(rnd.nextInt(200) * 10);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				} catch (Exception ie) {
+					ie.printStackTrace();
+				}
 			}
 		});
 	}
@@ -207,10 +282,12 @@ public class ServerTilkobling extends JFrame {
 										CommandMessageController(u, msg.substring(8,msg.length()));
 										 
 									}
+									/*
 									else if(msg.equals("Login")){
 										if(u.loginChecker()) 
 											System.out.println("User logged in...");
 									}
+									*/
 									else if(msg.equals("ChangePW")){
 										if(u.changePassword()) System.out.println("User changed password...");
 									}
@@ -237,17 +314,17 @@ public class ServerTilkobling extends JFrame {
 							}
 							*/
 						algo++;
-						//System.out.println(algo);
-						if(algo == 500 && (u.userId >= 0)) {
+						if(algo == 100 && (u.userId >= 0)) {
 							try {
 								algo = 0;
-								u.sendText("Ping");
+								if(u.returnConnected()) u.sendText("Ping");
 							} catch (Exception e) {
-								i.remove();
-								System.out.println("Removed user");
+								//i.remove();
+								u.setFalseConnection();
+								System.out.println("Connection of user removed");
 							}
 						}
-						if(algo > 500) algo = 0;
+						if(algo > 100) algo = 0;
 						}
 					}
 				 try {
@@ -288,6 +365,7 @@ public class ServerTilkobling extends JFrame {
 			                            receivePacket.getLength()));
 		             */
 		            HdlPacket p = HdlPacket.parse(receivePacket.getData(), receivePacket.getLength());
+		            
 		            //Tempinfo received when temperature is changed on the heating controller
 		            if(p != null) {
 		            	if(p.command == 93/*71 / 69*/) {	
@@ -330,7 +408,8 @@ public class ServerTilkobling extends JFrame {
 		            		for(int i = 0; i < user.size(); i++) {
 		            			UserClient u = user.get(i);
 								if(u.checkForMessage(messageCommand)) {
-									
+									u.setTempInfo(channel, sCurrentMode, sCurrentNormalTemp, sCurrentDayTemp, sCurrentNightTemp,
+													sCurrentAwayTemp, sCurrentTemp);
 									u.sendText("TempInfo:" + sChannel + sCurrentMode + sCurrentNormalTemp + sCurrentDayTemp
 													+ sCurrentNightTemp + sCurrentAwayTemp + sCurrentTemp);
 									System.out.println("Message sent to user:" + i);
@@ -404,6 +483,39 @@ public class ServerTilkobling extends JFrame {
 		});
 	}
 	
+	private void startSmartMessageListener() {
+		executorService.execute(() -> {
+			while (!shutdown) {
+				Random rnd = new Random();
+				try {
+					synchronized(user) {
+						Iterator<UserClient> i = user.iterator();
+						while (i.hasNext()) {
+							UserClient u = i.next();
+							if(u.returnSmartMessageNotNull()){
+								int n = u.SmartMessageSize();
+								for(int ii = 0; ii < n; ii++) {
+									String msg = u.getSmartMessageNr(ii);
+									CommandMessageController(u, msg);
+									u.removeSmartMessageNr(ii);
+									--n;
+									System.out.println("Sent message from timer to HDL");
+								}
+							}
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				 try {
+						TimeUnit.MILLISECONDS.sleep(rnd.nextInt(1000) * 10);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+			}
+		});
+	}
 	private void displayMessage(String text) {
 		SwingUtilities.invokeLater(() -> outputArea.append(text));
 	}
@@ -503,7 +615,7 @@ public class ServerTilkobling extends JFrame {
 		   System.out.println(data[i] + " data");
 		}
 		
-		int year = Integer.parseInt(data[0]);
+		//int year = Integer.parseInt(data[0]);
 		int month = Integer.parseInt(data[1]);
 		int day = Integer.parseInt(data[2]);
 		int hours = Integer.parseInt(data[3]);
@@ -529,8 +641,11 @@ public class ServerTilkobling extends JFrame {
 		
 		long seconds = (d2.getTime()-d1.getTime())/1000;
 		System.out.println(seconds);
-		
-		u.holidayTimer(seconds);
+		if(changeHours != 0){
+			changeHours = changeHours * 3600; //hours to seconds
+		}
+		seconds = seconds - changeHours;
+		u.holidayTimer(seconds, modeToChange);
         
 		
 		}catch(Exception e){
@@ -538,6 +653,10 @@ public class ServerTilkobling extends JFrame {
 			
 		}
 		
+	}
+	
+	void sendHolidayMessage(int n) {
+		CommandMessageController(user.get(n), "");
 	}
 		
 	private void sendPacketToHDL (int cmd, int subnetNr, int deviceNr, byte[] addData) {
