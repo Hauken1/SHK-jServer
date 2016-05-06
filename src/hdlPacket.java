@@ -1,5 +1,12 @@
 import java.net.*;
 
+/**
+ * This class processes the packets recieved from HDL.
+ * When the server receives messages from HDL, the packet will be processed here
+ * and then sent back to ServerConnection for further processing. 
+ * The class checks if the messages received from HDL contains the required fields. 
+ * If not it is nullified. 
+ */
 public class HdlPacket {	
 	int sourceAddress;
 	int sourceDevice = 0xfeff;
@@ -11,8 +18,14 @@ public class HdlPacket {
 
 
 /********************************* CRC table *********************************/
-	
-protected static final int[] CRCTable = {
+
+	/**
+	 * The CRC table which contains CRC values, used to validate the messages 
+	 * to be sent to HDL. Messages without correct CRC will not be processed correctly
+	 * by HDL. 
+	 * This table is retrieved from HDL. 
+	 */	
+	protected static final int[] CRCTable = {
 		 0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
 		 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
 		 0x1231, 0x0210, 0x3273, 0x2252, 0x52b5, 0x4294, 0x72f7, 0x62d6,
@@ -48,16 +61,30 @@ protected static final int[] CRCTable = {
 	};
 
 /******************************* CRC table end *******************************/
+	/**
+	 * Constructor of the HDL Packet class. 
+	 */
 	public HdlPacket() {
 		try {
 			replyAddress = InetAddress.getByAddress(new byte[] {0,0,0,0});
 		} catch(UnknownHostException e) {}
 	}
-
+	
+	/**
+	 * 
+	 * @param a
+	 * @return
+	 */
 	protected static int ubyte(byte a) {
 		return ((int) a) & 0xff;  
 	}
 	
+	/**
+	 * 
+	 * @param h
+	 * @param l
+	 * @return
+	 */
 	protected static int ushort(byte h, byte l) {
 		return (((short)h << 8) & 0xff00 ) | ((short)1 & 0xff);
 	}
@@ -71,6 +98,13 @@ protected static final int[] CRCTable = {
 	// because CRC takes 2 byte.
 	// e.g if package length is 11, then len is 13-2 = 11.
 	
+	/**
+	 * Method that computes and validates the CRC of the packet. 
+	 * @param data the data to processed
+	 * @param offset the offset for where the computation should start
+	 * @param count the length of the data to be processed (data length - offset - CRC)
+	 * @return returns the CRC. 
+	 */
 	protected static int computeCRC16(byte[] data, int offset, int count) {
 		int crc = 0;
 		int dat;
@@ -83,6 +117,14 @@ protected static final int[] CRCTable = {
 		return crc & 0xffff;
 	}
 	
+	/**
+	 * This method process packets received from HDL
+	 * If the packet does not contain the correct format
+	 * they are nullified. 
+	 * @param data the data to be processed.
+	 * @param length the length of the packet
+	 * @return returns the processed packet for further use. 
+	 */
 	protected static HdlPacket parse(byte[] data, int length) {
 		// 4 bytes for IP address + 10 bytes for "HDLMIRACLE" + 13 bytes min
 		// packet length == 27. 
@@ -98,7 +140,7 @@ protected static final int[] CRCTable = {
 		}
 		
 		if(computeCRC16(data,16, data[16] - 2) != ushort(data[length - 2], data[length - 1])) {
-			//System.out.println("TEST3");
+			//Do nothing
 			//return null;
 		}
 		
@@ -111,7 +153,7 @@ protected static final int[] CRCTable = {
 		packet.subNet = data[23];
 		packet.targetAddress = data[24];
 		
-		
+		System.out.println("CMD:" + packet.command);
 		/*
 		System.out.println("CMD:");
 		System.out.println(packet.command >> 8);	//Operationg code: higher than 8
@@ -140,7 +182,7 @@ protected static final int[] CRCTable = {
 		//sent to the applikation, based on the subnet of the
 		//panel which the command is sent to. 
 		
-		System.out.println(packet.command  + " Cmd");
+		//System.out.println(packet.command  + " Cmd");
 		
 		/*
 		int ii = 0; 
@@ -155,10 +197,10 @@ protected static final int[] CRCTable = {
 			packet.data = new byte[length - 25];
 			for (int i=0, len=length - 25/*data.length - 480*/; i<len; i++) {
 			   //hdldat[i] = data[23+i];
-			   packet.data[i] = data[23+i];
-			 
-			//   System.out.println((packet.data[i] & 0xFF) + " HDL " + i);
-			   //System.out.println(hdldat[i] + " data");
+			   packet.data[i] = data[23+i]; 
+			   System.out.println((packet.data[i] & 0xFF) + " HDL " + i);
+				   //System.out.println(hdldat[i] + " data");
+			   
 			}
 			
 		} else {
@@ -185,26 +227,84 @@ protected static final int[] CRCTable = {
 		
 		return packet;
 	}
-	
+	/**
+	 * 
+	 */
 	public String toString() {
 		return "[" + Integer.toHexString(sourceAddress)
 			+ " -> " + Integer.toHexString(targetAddress) 
 			+ " : " + Integer.toHexString(command) + "]";
 	}
-	
+	/**
+	 * Returns the source Address of the packet
+	 * @return the source Address
+	 */
 	public int	getSourceAddress() {return sourceAddress; }
+
+	/**
+	 * Returns the source Device of the packet. 
+	 * @return the source Device
+	 */
 	public int	getSourceDevice()  {return sourceDevice; }
+	/**
+	 * Returns the target address of the packet. 
+	 * @return the target address
+	 */
 	public int	getTargetAddress() {return targetAddress; }
+	/**
+	 * Returns the command of the packet
+	 * @return the command
+	 */
 	public int	getCommand()	   {return command; }
+	/**
+	 * Returns the data of the packet
+	 * @return the data
+	 */
 	public byte[] getData()		   {return data; }
 
+	/**
+	 * Sets the target address to be @param a
+	 * @param a new target address
+	 */
 	public void setTagetAddress(int a) {targetAddress = a & 0xffff; }
+	/**
+	 * Sets the source address to be @param a
+	 * @param a new source address
+	 */
 	public void setSourceAddress(int a){sourceAddress = a & 0xffff; }
+	/**
+	 * Sets the source device to be @param a
+	 * @param a new source device
+	 */
 	public void setSourceDevice(int a) {sourceDevice = a & 0xffff; }
+	/**
+	 * Sets the command to be @param a
+	 * @param a new command
+	 */
 	public void setCommand(int a) 	   {command = a & 0xffff; }
+	/**
+	 * Sets the data to be @param d
+	 * @param d the new data
+	 */
 	public void setData(byte[] d)      {data = d; }
+	/**
+	 * Sets the reply address to be @param addr
+	 * @param addr the new reply address
+	 */
 	public void setReplyAddress(InetAddress addr)  {replyAddress = addr; }
 	
+	/**
+	 * This method takes the data to be sent to HDL and constructs a valid packet, which HDL can
+	 * process. It constructs a packet based on fields in the correct order
+	 * which is required by HDL to be able to process the information. It adds the 
+	 * required "magic string" "HDLMIRACLE", CRC computes and validates the data to be sent.  
+	 * 
+	 * @param data the data to be sent to the device
+	 * @param cmd the command, which decides what the device should do with the message. 
+	 * @param subnet the subet of the device which is being sent to
+	 * @param devicenr the device number of the device which should receive the packet. 
+	 * @return the packet to be sent. 
+	 */
 	public byte[] getBytes() {
 		byte[] p = new byte[27 + (data != null ? data.length : 0)];
 		

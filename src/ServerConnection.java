@@ -33,24 +33,31 @@ import org.apache.derby.database.Database;
 
 //import com.sun.xml.internal.ws.encoding.MtomCodec.ByteArrayBuffer;
 
-public class ServerTilkobling extends JFrame {
+/**
+ * This class is the core of the server. 
+ * This class makes all the users, got five separate threads
+ * which listens to different message received from HDL and user applications. It creates the database.
+ * It also has different message handlers which runs method based on the messages
+ * that is received. 
+ *   
+ */
+public class ServerConnection extends JFrame {
 
-	private DatagramSocket socket;
+	private DatagramSocket socket; //HDL Socket. Sends to and receives date from HDL.
 	private DatagramSocket hdlSocket;
-	private static ServerSocket serverSocket; 
-	ExecutorService executorService;
+	private static ServerSocket serverSocket; //ServerSocket which listen for app users.
+	ExecutorService executorService; //Thread executor.
 	private JTextArea outputArea;
 	private boolean shutdown = false;
-	boolean uniqueUser = false;
-	private ArrayList<UserClient> user = new ArrayList<UserClient>();
-	private ArrayList<UserClient> tempUser = new ArrayList<UserClient>();
-	private ArrayList<ClientMessage> m = new ArrayList<ClientMessage>();
+	boolean uniqueUser = false;	
+	private ArrayList<UserClient> user = new ArrayList<UserClient>(); //List which contains valid users.
+	private ArrayList<UserClient> tempUser = new ArrayList<UserClient>(); //List which contains temporary users
 	private ArrayBlockingQueue<String> messages = new ArrayBlockingQueue<String>(50);	
-	public static final int MAX_PACKET_SIZE = 512;
+	public static final int MAX_PACKET_SIZE = 512; //Max size of a packet. 
 	
 
 	private InetAddress replyAddress; 
-	private int serverPort = 12345;
+	private int serverPort = 12345; //Port of the server. 
 	private int datagramPort = 1234;
 	
 	InetAddress listenAddress;
@@ -60,24 +67,17 @@ public class ServerTilkobling extends JFrame {
 	int sourceDevice = 65279; //0xfeff;
 	private String HDLip = "192.168.10.255";
 	private String HDLReceivingIP = "0.0.0.0";
-	private int hdlPort = 6000;
+	private int hdlPort = 6000; //Fixxed HDL Port
+	//******HDL*******\
 	
 	int algo = 0;
 	
-	
-	public ServerTilkobling() {
-		
-		outputArea = new JTextArea();
-		outputArea.setFont(new Font("Ariel", Font.PLAIN, 14));
-		outputArea.setEditable(false);
-		add(new JScrollPane(outputArea), BorderLayout.CENTER);
-		outputArea.setText("Server awaiting connections\n");
-		
-		setSize(600, 400);
-		setVisible(true);
-		
+	/**
+	 * Constructor of the ServerConnection class. 
+	 * This method creates all the listeners, created the database and sets up sockets.  
+	 */
+	public ServerConnection() {
 		try {
-			
 			//listenAddress = InetAddress.getLocalHost();
 			
 			socket = new DatagramSocket(null);
@@ -90,8 +90,8 @@ public class ServerTilkobling extends JFrame {
 			executorService = Executors.newCachedThreadPool();
 			
 			DatabaseHandler.createNewUserDB();
+			//DatabaseHandler.updatePW("hybel","vannflaske");
 			//DatabaseHandler.printDB();
-			
 			for(int i=1; i <= 4; i++ ) {
 				UserClient client = new UserClient(i);
 				user.add(client);
@@ -143,13 +143,18 @@ public class ServerTilkobling extends JFrame {
 			*/
 			//String msg2 = "Command:"
 			//executorService.shutdown();
+
 			
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 			System.exit(1);
 		}			
 	}
-	
+	/**
+	 * Method that execute a thread to start listen for user connections. 
+	 * User connections is put into a temp user list. Users is replaces if a user tries to connect again
+	 * while that user already connected earlier. 
+	 */
 	private void startLoginMonitor() {
 		executorService.execute(() -> {
 			while (!shutdown) {
@@ -179,7 +184,7 @@ public class ServerTilkobling extends JFrame {
 					}
 					uniqueUser = false;
 				} catch (IOException ioe) {
-					displayMessage("CONNECTION ERROR: " + ioe + "\n");
+					ioe.printStackTrace();
 				}
 				 try {
 						TimeUnit.MILLISECONDS.sleep(rnd.nextInt(200) * 10);
@@ -191,6 +196,12 @@ public class ServerTilkobling extends JFrame {
 		});
 	}
 	
+	/**
+	 * Method that executes a thread to start to listen for the applications login functionality. 
+	 * This is forgot password, change password and logins. 
+	 * When a user is logged in, that user is moved to another list which holds the "Valid"/online users.
+	 * Users is removed if they cannot receive messages. 
+	 */
 	private void startAPPLoginListener() {
 		executorService.execute(() -> {
 			while (!shutdown) {
@@ -217,10 +228,29 @@ public class ServerTilkobling extends JFrame {
 											Socket connection = u.returnSocket();
 											i.remove();
 											System.out.println("Removed temp user");
-											user.get(id).setSocket(connection);
-											user.get(id).sendText(Integer.toString(id));
+											for(int ii=0; ii< user.size(); ii++) {
+												if(user.get(ii).userId == id) {
+													user.get(ii).setSocket(connection);
+													user.get(ii).sendText(Integer.toString(id));
+												}
+											}
+										
 										}
 									}
+									else if(msg.equals("EmergencyLogin")){
+										if(u.emergencyLoginChecker()){
+											System.out.println("User forgot pw");
+										}
+									}
+									else if (msg.equals("ForgotPw")){
+										if(u.forgotPassord()){
+											System.out.println("User got a new pw");
+										}
+									}
+									else if(msg.equals("ChangePW")){
+										if(u.changePassword()) System.out.println("User changed password...");
+									}
+									
 								}
 							} catch (Exception e) {
 								System.out.println("Error with message");
@@ -259,6 +289,10 @@ public class ServerTilkobling extends JFrame {
 		});
 	}
 	
+	/**
+	 * Method that executes a thread to start listen for user messages. 
+	 * This messages are then processed and is handled correctly. 
+	 */
 	private void startAPPMessageListener() {
 		executorService.execute(() -> {
 			while (!shutdown) {
@@ -273,9 +307,9 @@ public class ServerTilkobling extends JFrame {
 								if (msg != null) {
 									System.out.println(msg);							
 									if (msg.equals("Disconnect")) {
-										System.out.println("Removing user:" + u.returnUserID());
-										i.remove();
-										user.remove(i);
+										System.out.println("User:" + u.returnUserID() + " Disconnected");
+										//i.remove();
+										//user.remove(i);
 										//shandleLogout(p);
 									}
 									else if (msg.startsWith("Command:")) {
@@ -288,14 +322,15 @@ public class ServerTilkobling extends JFrame {
 											System.out.println("User logged in...");
 									}
 									*/
-									else if(msg.equals("ChangePW")){
-										if(u.changePassword()) System.out.println("User changed password...");
-									}
+								
 									else if (msg.startsWith("Monitor:")){ // Monitoring-related
 										handleMonitoringControllerMessages(msg.substring(8,msg.length()), u);
 									}
 									else if (msg.startsWith("HolidayT:")) {
 										handleHolidayTimerMessages(msg.substring(9,msg.length()),u);	
+									}
+									else if (msg.startsWith("DayNightSetT:")){
+										handleDayNightTimer(msg.substring(13,msg.length()),u);
 									}
 									else {
 										
@@ -342,6 +377,13 @@ public class ServerTilkobling extends JFrame {
 		});
 	}
 	
+	/**
+	 * Method that executes a thread to start listen for packets from HDL.
+	 * Depending on the commands of these packets, they are handled accordingly. 
+	 * For instance, if a user has requested temperature information, and this listener
+	 * receives a packets which contains this information, that information is sent to the correct
+	 * user. 
+	 */
 	private void startHDLMessageListener() {
 		executorService.execute(() -> {
 			while (!shutdown) {
@@ -455,7 +497,8 @@ public class ServerTilkobling extends JFrame {
 		            		for(int i = 0; i < user.size(); i++) {
 		            			UserClient u = user.get(i);
 								if(u.checkForMessage(messageCommand)) {
-									
+									u.setTempInfo(channel, sCurrentMode, sCurrentNormalTemp, sCurrentDayTemp, sCurrentNightTemp,
+											sCurrentAwayTemp, sCurrentTemp);
 									u.sendText("TempInfo:" + sChannel + sCurrentMode + sCurrentNormalTemp + sCurrentDayTemp
 													+ sCurrentNightTemp + sCurrentAwayTemp + sCurrentTemp);
 									System.out.println("Message sent to user:" + i);
@@ -483,6 +526,11 @@ public class ServerTilkobling extends JFrame {
 		});
 	}
 	
+	/**
+	 * This method executes a thread which iterates between each user. This thread checks if a
+	 * user has any smartMessages. SmartMessages is messages which is generated through timers
+	 * and should be sent to HDL when a time input by user has been reached. 
+	 */
 	private void startSmartMessageListener() {
 		executorService.execute(() -> {
 			while (!shutdown) {
@@ -516,10 +564,16 @@ public class ServerTilkobling extends JFrame {
 			}
 		});
 	}
-	private void displayMessage(String text) {
-		SwingUtilities.invokeLater(() -> outputArea.append(text));
-	}
-
+	
+	/**
+	 * This method takes a message made up of a specific format and takes it apart, field
+	 * by field. If the command field contains a command where the user has requested information. 
+	 * That command is saved + the id of the user that requested. 
+	 * When the server has received a message containing all this information from HDL later, it will
+	 * be sent to that user. 
+	 * @param u the user being iterated through
+	 * @param msg the message to be taken apart and processed. 
+	 */
 	private void CommandMessageController(UserClient u, String msg) {
 		//System.out.println(msg);
 		int cmd;
@@ -572,7 +626,7 @@ public class ServerTilkobling extends JFrame {
 		
 		//System.out.println(cmd + " Cmd slutt");
 			
-		//System.out.println(cmd + " CMD");
+		System.out.println(cmd + " CMD");
 			
 		subnetNr = Integer.parseInt(msg.substring(6,7));
 		//System.out.println(subnetNr + " subnet");
@@ -590,7 +644,7 @@ public class ServerTilkobling extends JFrame {
 	
 			for (int i=0, len=data.length; i<len; i++) {
 			   data[i] = Byte.parseByte(byteString[i].trim());  
-			   //System.out.println(data[i] + " data");
+			   System.out.println(data[i] + " data");
 			}
 			
 		} else {
@@ -599,10 +653,77 @@ public class ServerTilkobling extends JFrame {
 		
 		sendPacketToHDL(cmd, subnetNr, dNr, data);
 	}
+	
+	/**
+	 * Handles a specific message. Does nothing currently, as it has not been needed. 
+	 * @param msg the message to be processed. 
+	 * @param u the user being iterated through. 
+	 */
 	private void handleMonitoringControllerMessages(String msg, UserClient u) {
+		
 		
 	}
 	
+	/**
+	 * Method that process a message from the user, wher the user requested a day or night timer, which
+	 * sets the mode to day or night on the time requested by the user. 
+	 * This method starts a AlarmClock in UserClient, which is scheduled on the specific time
+	 * and then rescheduled for the next day after it has gone off. 
+	 * @param msg the message to be processed
+	 * @param u the user being iterated through. 
+	 */
+	private void handleDayNightTimer(String msg, UserClient u){
+		char set = msg.charAt(0);
+		String[] textString = msg.substring(1, msg.length()).split(",");
+		String[] data = new String[textString.length];
+		
+		for (int i=0, len=data.length; i<len; i++) {
+		   data[i] = textString[i].trim();  
+		   System.out.println(data[i] + " data");
+		}
+		
+		switch (set){
+			case 'D':	//Only day is changed
+				int dayHour = Integer.parseInt(data[1]);
+				int dayMin = Integer.parseInt(data[2]);
+				String dHours = String.format("%02d", dayHour);
+				String dMinutes = String.format("%02d", dayMin);
+				System.out.println(dHours);
+				System.out.println(dMinutes);
+				u.dayModeTimer(dHours, dMinutes);
+				break;
+			case 'N':	//Only night is changed
+				int nightHour = Integer.parseInt(data[1]);
+				int nightMin = Integer.parseInt(data[2]);
+				String nHours = String.format("%02d", nightHour);
+				String nMinutes = String.format("%02d", nightMin);
+				u.nightModeTimer(nHours, nMinutes);
+				break;
+			case 'B':	//Day and night is changed
+				int dayHourB = Integer.parseInt(data[1]);
+				int dayMinB = Integer.parseInt(data[2]);
+				int nightHourB = Integer.parseInt(data[3]);
+				int nightMinB = Integer.parseInt(data[4]);
+				String bDHours = String.format("%02d", dayHourB);
+				String bDMinutes = String.format("%02d", dayMinB);
+				String bNHours = String.format("%02d", nightHourB);
+				String bNMinutes = String.format("%02d", nightMinB);
+				u.dayModeTimer(bDHours, bDMinutes);
+				u.nightModeTimer(bNHours, bNMinutes);
+				break;
+			default:
+				break;
+		}
+		
+	}
+	
+	/**
+	 * Method that process a message from a user, where the user requested a 
+	 * holiday timer. This method process the message and starts a message 
+	 * that runs for the period input by the user. 
+	 * @param msg the message to be processed. 
+	 * @param u the user being iterated through.
+	 */
 	private void handleHolidayTimerMessages(String msg, UserClient u){
 		
 		try {
@@ -654,13 +775,24 @@ public class ServerTilkobling extends JFrame {
 		}
 		
 	}
-	
+	/**
+	 * Used for testing the holidaytimer. 
+	 * @param n the user which has the timer. 
+	 */
 	void sendHolidayMessage(int n) {
 		CommandMessageController(user.get(n), "");
 	}
-		
+	
+	/**
+	 * This method takes the message to be sent to HDL, sends it to another method that constructs
+	 * it into the correct format, and then tries to send the packet to HDL. 
+	 * @param cmd the command of the message. This decides what the device should do with the message.
+	 * @param subnetNr the subnet of the device being sent to. 
+	 * @param deviceNr the device number of the device being sent to. 
+	 * @param addData the data to be sent. 
+	 */
 	private void sendPacketToHDL (int cmd, int subnetNr, int deviceNr, byte[] addData) {
-		displayMessage("\n\nSending data to HDL....");
+		//displayMessage("\n\nSending data to HDL....");
 		
 		byte[] HDLData = new byte[31];
 		
@@ -681,7 +813,7 @@ public class ServerTilkobling extends JFrame {
 				sendPacket = new DatagramPacket(HDLData,
 				        HDLData.length, InetAddress.getByName(HDLip), hdlPort);
 				socket.send(sendPacket);
-				displayMessage("\nPackage sent to HDL....");
+				//displayMessage("\nPackage sent to HDL....");
 			} catch (UnknownHostException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -693,12 +825,16 @@ public class ServerTilkobling extends JFrame {
 	}
 	
 	/**
+	 * This method takes the data to be sent to HDL and constructs a valid packet, which HDL can
+	 * process. It constructs a packet based on fields in the correct order
+	 * which is required by HDL to be able to process the information. It adds the 
+	 * required "magic string" "HDLMIRACLE", CRC computes and validates the data to be sent.  
 	 * 
-	 * @param data 
-	 * @param cmd 
-	 * @param subnet
-	 * @param devicenr
-	 * @return
+	 * @param data the data to be sent to the device
+	 * @param cmd the command, which decides what the device should do with the message. 
+	 * @param subnet the subet of the device which is being sent to
+	 * @param devicenr the device number of the device which should receive the packet. 
+	 * @return the packet to be sent. 
 	 */
 	public byte[] getBytes(byte[] data, int cmd, int subnet, int devicenr) {
 		byte[] p = new byte[27 + (data != null ? data.length : 0)];
@@ -761,6 +897,14 @@ public class ServerTilkobling extends JFrame {
 		return p;
 	}
 	
+	/**
+	 * Method that computes the CRC of the message to be sent. 
+	 * @param data the data to be computed and validated.
+	 * @param offset the offset, which decides the where the CRC should start computing from. 
+	 * @param count the length of the data to be computed. This value is -18 because it is the 
+	 * (length - offset - CRC). The CRC is two bytes (16 bits).
+	 * @return returns the CRC: 
+	 */
 	protected static int computeCRC16(byte[] data, int offset, int count) {
 		int crc = 0;
 		int dat;
@@ -774,6 +918,12 @@ public class ServerTilkobling extends JFrame {
 	}
 /********************************* CRC table *********************************/
 	
+	/**
+	 * The CRC table which contains CRC values, used to validate the messages 
+	 * to be sent to HDL. Messages without correct CRC will not be processed correctly
+	 * by HDL. 
+	 * This table is retrieved from HDL. 
+	 */
 	 protected static final int[] CRCTable = {
 		 0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
 		 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,

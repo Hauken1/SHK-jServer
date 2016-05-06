@@ -32,7 +32,6 @@ import com.sun.xml.internal.ws.api.addressing.WSEndpointReference.Metadata;
  * ResultSet			// Gets a resultset
  * hasher				// Hashes passwords
  * 
- * @author Edvard, created on 22.03/16
  */
 public class DatabaseHandler {
 	
@@ -58,6 +57,10 @@ public class DatabaseHandler {
 	
 /*****************************************************************************/
 	
+	/**
+	 * Constructor of the databaseHandler. 
+	 * Retrieves the correct database URL and creates a new user database. 
+	 */
 	public DatabaseHandler() {
 		try {
 			conn = DriverManager.getConnection(dbURL);
@@ -65,6 +68,10 @@ public class DatabaseHandler {
 		} catch (SQLException sqle) {sqle.printStackTrace();}
 	}
 	
+	/**
+	 * Returns the connection of the database. 
+	 * @return the connection.
+	 */
 	public static Connection getDBconnection() {
 		return conn;
 	}
@@ -90,10 +97,11 @@ public class DatabaseHandler {
 			while(resultSet.next()) {
 				String user = resultSet.getString("uName");
 				String password = resultSet.getString("pWord");
+				String ePW = resultSet.getString("ePWord");
 				int id = resultSet.getInt("id");
-				Boolean rMe = resultSet.getBoolean("rememberMe");
+				//Boolean rMe = resultSet.getBoolean("rememberMe");
 				System.out.println("Id: " + id + " Bruker: " + user + " Passord: " +
-				password + " Husk meg: " + rMe + "\n");	
+				password + " Master: " + ePW + "\n");	
 		}
 		conn.close();
 		} catch (SQLException sqle) {sqle.printStackTrace();}	
@@ -123,6 +131,7 @@ public class DatabaseHandler {
 			ResultSet rs = dbmd.getTables(null, "test", tableName, null);	// Remove if scheme not exits
 			// If the table userDB does not exits, it will be created and users
 			// inserted with default passwords
+			
 			if(rs.next()) {	// Remove if scheme not exits
 				stmt = conn.createStatement();
 			// Creates the table.
@@ -130,15 +139,15 @@ public class DatabaseHandler {
 						"GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), " +
 						"uName VARCHAR(255), " + 
 						"pWord VARCHAR(255), " +
-						"rememberMe BOOLEAN, " + 
+						"ePWord VARCHAR(255), " + 
 						"PRIMARY KEY(id))");
 			// Inserts users
 			// Root has id: 1
-				insertUsers("root", 	  hasher("root"),        false);
+				insertUsers("root", 	  hasher("root"),       hasher("root"));
 			// Leilighet1 has id 2, and so on...
-				insertUsers("leilighet1", hasher("Karaffel"),    false);
-				insertUsers("leilighet2", hasher("kaffegrut"),   false);
-				insertUsers("hybel",      hasher("tommetønner"), false);	
+				insertUsers("leilighet1", hasher("karaffel"),   hasher("Gk378irfKFJ"));
+				insertUsers("leilighet2", hasher("kaffegrut"),  hasher("JdF334hf9F"));
+				insertUsers("hybel",      hasher("vannflaske"), hasher("Fm3kMFJFS"));	
 			}		// Remove if scheme not exits
 			conn.close();
 		} catch (SQLException sqle) {sqle.printStackTrace();} 
@@ -165,27 +174,7 @@ public class DatabaseHandler {
 	}
 */
 	
-	/**
-	 * Hopefully, this will set the rememberMe flag to either 1 or 0. 
-	 * Used in app.
-	 * @param uName
-	 * @param rMe The boolean 1 (for remember) or 0.
-	 * @return
-	 */
-	public static boolean rememberMe(String uName, Boolean rMe) {
-		connectToDB();
-		try {
-			pst = conn.prepareStatement("UPDATE " + tableName + " SET rememberMe = ? " +
-					"WHERE uName = ? ");
-			pst.setBoolean(1, rMe);
-			pst.setString(2, uName);
-			pst.executeUpdate();
-			conn.close();
-			return true;
-		} catch (SQLException sqle) {sqle.printStackTrace();}
-		return false;
-	}
-	
+
 	/**
 	 * This function allows the creation of new users.
 	 * @param uName Username 
@@ -207,12 +196,12 @@ public class DatabaseHandler {
 	 * @param uName Username 
 	 * @param pWord Password
 	 */
-	public static void insertUsers(String uName, String pWord, boolean rememberMe) {
+	public static void insertUsers(String uName, String pWord, String ePWord) {
 		try{
 			connectToDB();
 			stmt = conn.createStatement();
 			// Inserting new user into user database.
-			stmt.execute("INSERT INTO " + tableName + " (uName , pWord, rememberMe) VALUES ('" + uName + "','" + pWord +  "','" + rememberMe +"')");
+			stmt.execute("INSERT INTO " + tableName + " (uName , pWord, ePWord) VALUES ('" + uName + "','" + pWord +  "','" + ePWord +"')");
 			// closing connection
 			conn.close();
 		} catch (SQLException sqle) {sqle.printStackTrace();}
@@ -251,12 +240,12 @@ public class DatabaseHandler {
 	 * @param pWord
 	 */
 	public static int logIn(String tempUName, String tempPWord) {
-		String uName, pWord;
+		String uName, pWord, mPw;
 		int id;
 		
 		try {
 			connectToDB();
-			String query = "SELECT id, uName, pWord FROM " + tableName;
+			String query = "SELECT id, uName, pWord, ePWord FROM " + tableName;
 			Statement stmt = (Statement) conn.createStatement();
 			stmt.executeQuery(query);
 			ResultSet rs = stmt.getResultSet();
@@ -265,6 +254,7 @@ public class DatabaseHandler {
 
 				uName = rs.getString("uName");	// Gets from DB
 				pWord = rs.getString("pWord");	// -||-
+				mPw = rs.getString("ePWord");
 				id    = rs.getInt("id");		// -||-
 				
 				// Checks if inputs equals the ones in DB. Hashes the input PW 
@@ -273,6 +263,7 @@ public class DatabaseHandler {
 				// If everything is OK, it returns the id of the user		
 					return id;
 				}
+				else if(uName.equals(tempUName) && mPw.equals(hasher(tempPWord))) return id;
 			}
 		} catch (SQLException sqle) {
 			sqle.printStackTrace();
