@@ -1,12 +1,17 @@
 import javax.swing.JFrame;
 
+/**
+ * Main class of the server.
+ * Starts the server when the program is executed.
+ */
 public class ServerMain {
-
+	
+	/**
+	 * Main method of the server program. 
+	 * Starts a serverConnection class, which adds the server functionality. 
+	 * @param args if executed from command line or from another program. 
+	 */
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-
-		 ServerTilkobling application = new ServerTilkobling();
-	     application.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		 ServerConnection application = new ServerConnection();
 	}
-
 }
