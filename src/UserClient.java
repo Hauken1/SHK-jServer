@@ -46,6 +46,7 @@ public class UserClient {
 		int userId; 
 		boolean connected = false;
 		boolean slept;
+		boolean modeIsHoliday;
 		
 		private String ModeHoliday = "1";
 		private String ModeDay = "2";	
@@ -135,7 +136,7 @@ public class UserClient {
 			userId = n;
 			InitTempInfo();
 			initDayNightTimer();
-			
+
 		}
 		
 		/**
@@ -240,6 +241,7 @@ public class UserClient {
 			dayChangeMin = 0;
 			nightChangeHours = 0;
 			nightChangeMin = 0;
+			modeIsHoliday = false;
 		}
 
 		/**
@@ -308,6 +310,11 @@ public class UserClient {
 		public void setTempInfo(int n, String mode, String normalTemp, String dayTemp, String nightTemp,
 									String awayTemp, String currentTemp){
 			String channel = Integer.toString(n);
+			int testForHolidayMode = Integer.parseInt(mode);
+			
+			if(testForHolidayMode == 1) modeIsHoliday = true; 
+			else modeIsHoliday = false;
+			
 			switch(n){
 			case 1:
 				Channel1 = channel;
@@ -798,7 +805,7 @@ public class UserClient {
 		             * Sends a message to HDL, to put the dwelling unit to correct mode.
 		             */
 		        	public void run() {
-		                sendingMessage();
+		        		if(!modeIsHoliday) sendingMessage();
 		            }
 		        	/**
 		        	 * Method calls another method based on the mode input by user. 

@@ -68,6 +68,10 @@ public class DatabaseHandler {
 		} catch (SQLException sqle) {sqle.printStackTrace();}
 	}
 	
+	/**
+	 * Returns the connection of the database. 
+	 * @return the connection.
+	 */
 	public static Connection getDBconnection() {
 		return conn;
 	}
