@@ -1,13 +1,13 @@
 ----------------------------------------------------------------
-Fri May 06 13:24:18 CEST 2016:
-Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-0154-85cf-a083-000003236650 
-on database directory C:\Users\Hauken\Desktop\Programvareutvikling\WorkSpace\SHK-jServer\userDB with class loader sun.misc.Launcher$AppClassLoader@4e0e2f2a 
-Loaded from file:/C:/Users/Hauken/Desktop/Programvareutvikling/WorkSpace/derby.jar
+Wed May 11 10:42:39 CEST 2016:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-0154-9efb-701e-00000e4d3418 
+on database directory /Users/Mehbeh/Documents/SHK-jServer/userDB with class loader sun.misc.Launcher$AppClassLoader@4554617c 
+Loaded from file:/Users/Mehbeh/Documents/SHK-jServer/derby.jar
 java.vendor=Oracle Corporation
-java.runtime.version=1.8.0_60-b27
-user.dir=C:\Users\Hauken\Desktop\Programvareutvikling\WorkSpace\SHK-jServer
-os.name=Windows 10
-os.arch=amd64
-os.version=10.0
+java.runtime.version=1.8.0_74-b02
+user.dir=/Users/Mehbeh/Documents/SHK-jServer
+os.name=Mac OS X
+os.arch=x86_64
+os.version=10.11.4
 derby.system.home=null
 Database Class Loader started - derby.database.classpath=''
